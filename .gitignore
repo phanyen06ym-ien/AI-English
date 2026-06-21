@@ -217,5 +217,19 @@ __marimo__/
 # Streamlit
 .streamlit/secrets.toml
 
-*.pyc
+
 *.pt
+# Virtual Environment
+.venv/
+
+# PyCharm
+.idea/
+
+# Cache
+
+*.pyc
+
+
+# SQLite local database
+*.db
+*.db-journal

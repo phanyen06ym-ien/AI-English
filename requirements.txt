@@ -2,3 +2,5 @@ ultralytics
 opencv-python
 numpy
 pillow
+pyttsx3
+googletrans==4.0.0rc1
