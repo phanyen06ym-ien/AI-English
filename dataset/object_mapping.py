@@ -1,0 +1,15 @@
+OBJECT_MAPPING = {
+    "person": "Người",
+    "book": "Sách",
+    "backpack": "Ba lô",
+    "laptop": "Máy tính xách tay",
+    "cell phone": "Điện thoại",
+    "mouse": "Chuột máy tính",
+    "keyboard": "Bàn phím",
+    "chair": "Ghế",
+    "dining table": "Bàn học",
+    "bottle": "Chai nước",
+    "cup": "Cốc",
+    "clock": "Đồng hồ",
+    "tv": "Màn hình"
+}
