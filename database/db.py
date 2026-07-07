@@ -1,22 +1,15 @@
 import os
-import pyodbc
+import psycopg2
 from dotenv import load_dotenv
 
 load_dotenv()
 
-SERVER = os.getenv("DB_SERVER")
-DATABASE = os.getenv("DB_DATABASE")
-USERNAME = os.getenv("DB_USERNAME")
-PASSWORD = os.getenv("DB_PASSWORD")
-
 
 def get_connection():
-    conn = pyodbc.connect(
-        f"DRIVER={{ODBC Driver 17 for SQL Server}};"
-        f"SERVER={SERVER};"
-        f"DATABASE={DATABASE};"
-        f"UID={USERNAME};"
-        f"PWD={PASSWORD};"
-        "TrustServerCertificate=yes;"
+    return psycopg2.connect(
+        host=os.getenv("DB_HOST"),
+        database=os.getenv("DB_NAME"),
+        user=os.getenv("DB_USER"),
+        password=os.getenv("DB_PASSWORD"),
+        port=os.getenv("DB_PORT")
     )
-    return conn

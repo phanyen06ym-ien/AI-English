@@ -1,22 +1,29 @@
 from ultralytics import YOLO
+from utils.config import MODEL_PATH, CONFIDENCE
+from dataset.coco_classes import COCO_CLASSES
 
-# Tải model YOLOv8
-model = YOLO("yolov8n.pt")
 
-def detect(image_path):
-    results = model(image_path)
+class ObjectDetector:
+    def __init__(self, model_path=MODEL_PATH):
+        self.model = YOLO(model_path)
 
-    detected_objects = []
+    def detect(self, frame):
+        results = self.model(frame, verbose=False)
+        detected_objects = []
 
-    for result in results:
-        for box in result.boxes:
-            class_id = int(box.cls[0])
-            class_name = model.names[class_id]
-            confidence = float(box.conf[0])
+        for result in results:
+            for box in result.boxes:
+                class_id = int(box.cls[0])
+                confidence = float(box.conf[0])
+                class_name = self.model.names[class_id]
 
-            detected_objects.append({
-                "english": class_name,
-                "confidence": confidence
-            })
+                if confidence >= CONFIDENCE and class_name in COCO_CLASSES:
+                    x1, y1, x2, y2 = map(int, box.xyxy[0])
 
-    return detected_objects
+                    detected_objects.append({
+                        "class_name": class_name,
+                        "confidence": confidence,
+                        "box": (x1, y1, x2, y2)
+                    })
+
+        return detected_objects

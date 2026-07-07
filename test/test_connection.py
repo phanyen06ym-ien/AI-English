@@ -2,14 +2,17 @@ from database.db import get_connection
 
 try:
     conn = get_connection()
-    print("Kết nối SQL Server thành công!")
+    cur = conn.cursor()
 
-    cursor = conn.cursor()
-    cursor.execute("SELECT GETDATE()")
-    print(cursor.fetchone()[0])
+    cur.execute("SELECT version();")
+    version = cur.fetchone()
 
-    cursor.close()
+    print(" Kết nối thành công!")
+    print(version)
+
+    cur.close()
     conn.close()
 
 except Exception as e:
-    print("Lỗi:", e)
+    print("Lỗi kết nối:")
+    print(e)

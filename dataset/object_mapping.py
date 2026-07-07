@@ -7,9 +7,11 @@ OBJECT_MAPPING = {
     "mouse": "Chuột máy tính",
     "keyboard": "Bàn phím",
     "chair": "Ghế",
-    "dining table": "Bàn học",
+    "dining table": "Bàn",
     "bottle": "Chai nước",
     "cup": "Cốc",
     "clock": "Đồng hồ",
-    "tv": "Màn hình"
+    "monitor": "Màn hình",
+    "notebook": "Vở",
+    "pen": "Bút"
 }
