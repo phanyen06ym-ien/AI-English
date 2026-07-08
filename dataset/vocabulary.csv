@@ -1,17 +1,17 @@
-english,vietnamese,category,level,frequency
-person,Người,Human,Easy,100
-book,Sách,Study,Easy,95
-backpack,Ba lô,Study,Easy,80
-laptop,Máy tính xách tay,Technology,Medium,88
-cell phone,Điện thoại,Technology,Easy,99
-mouse,Chuột máy tính,Technology,Medium,68
-keyboard,Bàn phím,Technology,Medium,70
-chair,Ghế,Furniture,Easy,85
-dining table,Bàn,Furniture,Medium,65
-bottle,Chai nước,Daily,Easy,92
-cup,Cốc,Daily,Easy,91
-clock,Đồng hồ,Daily,Easy,78
-tv,Tivi,Technology,Easy,83
-monitor,Màn hình,Technology,Medium,60
-notebook,Vở,Study,Easy,75
-pen,Bút,Study,Easy,90
+english,vietnamese,category,level
+person,Người,Human,Easy
+book,Sách,Study,Easy
+backpack,Ba lô,Study,Easy
+laptop,Máy tính xách tay,Technology,Medium
+cell phone,Điện thoại,Technology,Easy
+mouse,Chuột máy tính,Technology,Medium
+keyboard,Bàn phím,Technology,Medium
+chair,Ghế,Furniture,Easy
+dining table,Bàn,Furniture,Medium
+bottle,Chai nước,Daily,Easy
+cup,Cốc,Daily,Easy
+clock,Đồng hồ,Daily,Easy
+tv,Tivi,Technology,Easy
+monitor,Màn hình,Technology,Medium
+notebook,Vở,Study,Easy
+pen,Bút,Study,Easy
