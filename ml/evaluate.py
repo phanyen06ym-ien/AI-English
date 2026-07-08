@@ -1,65 +1,48 @@
-from pathlib import Path
-
-import joblib
-from sklearn.model_selection import KFold, cross_val_score
-
-from dataset.vocabulary import all_words
-from ml.bayes import build_pipeline as build_bayes
-from ml.knn import build_pipeline as build_knn
-from ml.kmeans import build_pipeline as build_kmeans
-
-MODEL_PATH = Path(__file__).parent.parent / "model" / "word_category_model.joblib"
-
-ALGORITHMS = {
-    "bayes": build_bayes,
-    "knn": build_knn,
-    "kmeans": build_kmeans,
-}
+from ml.bayes import predict_word_level, read_vocabulary as read_bayes_vocabulary
+from ml.kmeans import cluster_vocabulary, get_words_in_same_cluster
+from ml.knn import get_related_words
 
 
-def load_training_data():
-    words = all_words()
-    X = list(words.keys())
-    y = [row["category"] for row in words.values()]
-    return X, y
+def evaluate_bayes():
+    """Demo Bayes đúng vai trò: phân loại độ khó từ vựng."""
+    words = ["book", "keyboard", "backpack", "unknown_word"]
+    return {word: predict_word_level(word) for word in words}
 
 
-def compare_algorithms(X, y):
-    # Dataset is tiny (a few words per category), so a plain shuffled KFold
-    # is used instead of stratified CV to avoid failing on rare classes.
-    # Accuracy numbers here are indicative only, not statistically reliable.
-    cv = KFold(n_splits=min(3, len(X)), shuffle=True, random_state=42)
-    scores = {}
-    for name, builder in ALGORITHMS.items():
-        pipeline = builder()
-        result = cross_val_score(pipeline, X, y, cv=cv, scoring="accuracy")
-        scores[name] = result.mean()
-    return scores
+def evaluate_kmeans():
+    """Demo K-Means đúng vai trò: phân cụm từ vựng không giám sát."""
+    clusters = {}
+    for item in cluster_vocabulary():
+        clusters.setdefault(item["cluster"], []).append(item["english"])
+    return clusters
 
 
-def train_best_model(X, y, scores):
-    best_name = max(scores, key=scores.get)
-    best_pipeline = ALGORITHMS[best_name]()
-    best_pipeline.fit(X, y)
-    return best_name, best_pipeline
+def evaluate_knn():
+    """Demo k-NN đúng vai trò: gợi ý từ liên quan."""
+    words = ["laptop", "book", "bottle"]
+    return {word: [item["english"] for item in get_related_words(word)] for word in words}
 
 
 def run():
-    X, y = load_training_data()
-    scores = compare_algorithms(X, y)
+    """In kết quả demo cho từng thuật toán theo đúng ý nghĩa báo cáo."""
+    df = read_bayes_vocabulary()
+    print(f"Số lượng từ vựng trong dataset: {len(df)}")
 
-    print("So sánh độ chính xác (cross-validation, dữ liệu nhỏ nên chỉ mang tính tham khảo):")
-    for name, acc in sorted(scores.items(), key=lambda item: -item[1]):
-        print(f"  {name}: {acc:.2f}")
+    print("\nNaive Bayes - phân loại độ khó:")
+    for word, level in evaluate_bayes().items():
+        print(f"  {word}: {level}")
 
-    best_name, best_pipeline = train_best_model(X, y, scores)
-    print(f"Chọn thuật toán tốt nhất: {best_name}")
+    print("\nK-Means - phân cụm từ vựng:")
+    for cluster, words in sorted(evaluate_kmeans().items()):
+        print(f"  Cụm {cluster}: {', '.join(words)}")
 
-    MODEL_PATH.parent.mkdir(parents=True, exist_ok=True)
-    joblib.dump(best_pipeline, MODEL_PATH)
-    print(f"Đã lưu model vào {MODEL_PATH}")
+    print("\nk-NN - gợi ý từ liên quan:")
+    for word, related_words in evaluate_knn().items():
+        print(f"  {word}: {', '.join(related_words)}")
 
-    return best_name, best_pipeline
+    print("\nCác từ cùng cụm với laptop:")
+    same_cluster = [item["english"] for item in get_words_in_same_cluster("laptop")]
+    print(f"  {', '.join(same_cluster)}")
 
 
 if __name__ == "__main__":

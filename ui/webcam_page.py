@@ -4,6 +4,7 @@ from PIL import Image
 
 from detection.classify import classify_word
 from utils.config import CAMERA_ID
+from utils.helper import draw_vietnamese_text
 
 
 class WebcamPage(ctk.CTkFrame):
@@ -60,9 +61,12 @@ class WebcamPage(ctk.CTkFrame):
                 label = f"{class_name} - {vietnamese} [{info['category']}]"
 
                 cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
-                cv2.putText(
-                    frame, label, (x1, max(y1 - 10, 5)),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 2,
+                frame = draw_vietnamese_text(
+                    frame,
+                    label,
+                    (x1, max(y1 - 35, 5)),
+                    color=(0, 255, 0),
+                    size=24,
                 )
 
             rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)

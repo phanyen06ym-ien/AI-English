@@ -1,17 +1,19 @@
 import cv2
-from detection.detector import ObjectDetector
-from detection.classify import classify_word
-from utils.helper import draw_vietnamese_text
+
 from database.history import save_history
+from detection.classify import classify_word
+from detection.detector import ObjectDetector
+from utils.helper import draw_vietnamese_text
 
 
-def detect_image(image_path):
-    detector = ObjectDetector()
+def detect_image(image_path, detector=None, show_window=True):
+    """Nhận dạng vật thể trong ảnh và trả về ảnh đã vẽ nhãn cùng kết quả."""
+    detector = detector or ObjectDetector()
     image = cv2.imread(image_path)
 
     if image is None:
         print("Không đọc được ảnh:", image_path)
-        return
+        return None, []
 
     objects = detector.detect(image)
     results = []
@@ -28,20 +30,20 @@ def detect_image(image_path):
         save_history(class_name, vietnamese, info["category"], confidence)
 
         cv2.rectangle(image, (x1, y1), (x2, y2), (0, 255, 0), 2)
-
         image = draw_vietnamese_text(
             image,
             label,
             (x1, max(y1 - 35, 5)),
             color=(0, 255, 0),
-            size=28
+            size=28,
         )
 
-    cv2.imshow("Image Detection", image)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
+    if show_window:
+        cv2.imshow("Image Detection", image)
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
 
-    return results
+    return image, results
 
 
 if __name__ == "__main__":

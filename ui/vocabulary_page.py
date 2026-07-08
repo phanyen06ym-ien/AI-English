@@ -11,7 +11,9 @@ class VocabularyPage(ctk.CTkFrame):
         self.search_var = ctk.StringVar()
         self.search_var.trace_add("write", lambda *_: self._render())
         ctk.CTkEntry(
-            self, placeholder_text="Tìm từ (tiếng Anh hoặc tiếng Việt)...", textvariable=self.search_var
+            self,
+            placeholder_text="Tìm từ (tiếng Anh hoặc tiếng Việt)...",
+            textvariable=self.search_var,
         ).pack(fill="x", padx=16, pady=(16, 8))
 
         self.list_frame = ctk.CTkScrollableFrame(self, width=640, height=460)
@@ -32,11 +34,14 @@ class VocabularyPage(ctk.CTkFrame):
             item = ctk.CTkFrame(self.list_frame)
             item.pack(fill="x", pady=4)
 
-            text = f"{english} — {row['vietnamese']}  ·  {row['category']}  ·  {row['level']}"
+            text = f"{english} - {row['vietnamese']} | {row['category']} | {row['level']}"
             ctk.CTkLabel(item, text=text, anchor="w").pack(side="left", fill="x", expand=True, padx=8)
-            ctk.CTkButton(item, text="🔊", width=32, command=lambda w=english: speak(w)).pack(
-                side="right", padx=8, pady=6
-            )
+            ctk.CTkButton(
+                item,
+                text="Phát âm",
+                width=80,
+                command=lambda w=english: speak(w),
+            ).pack(side="right", padx=8, pady=6)
 
         if not self.list_frame.winfo_children():
             ctk.CTkLabel(self.list_frame, text="Không tìm thấy từ nào.").pack(pady=8)
