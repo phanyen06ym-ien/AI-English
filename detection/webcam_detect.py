@@ -1,6 +1,6 @@
 import cv2
 from detection.detector import ObjectDetector
-from utils.translator import translate_object
+from detection.classify import classify_word
 from utils.config import CAMERA_ID
 
 
@@ -25,11 +25,12 @@ def run_webcam():
 
         for obj in objects:
             class_name = obj["class_name"]
-            vietnamese = translate_object(class_name)
+            info = classify_word(class_name)
+            vietnamese = info["vietnamese"] or class_name
             confidence = obj["confidence"]
             x1, y1, x2, y2 = obj["box"]
 
-            label = f"{class_name} - {vietnamese} ({confidence:.2f})"
+            label = f"{class_name} - {vietnamese} [{info['category']}] ({confidence:.2f})"
 
             cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
             cv2.putText(
@@ -52,4 +53,7 @@ def run_webcam():
 
 
 if __name__ == "__main__":
+    from utils.console import use_utf8_console
+
+    use_utf8_console()
     run_webcam()
