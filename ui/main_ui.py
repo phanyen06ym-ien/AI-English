@@ -5,7 +5,6 @@ from ui.image_page import ImagePage
 from ui.vocabulary_page import VocabularyPage
 from ui.webcam_page import WebcamPage
 
-
 ctk.set_appearance_mode("System")
 ctk.set_default_color_theme("blue")
 

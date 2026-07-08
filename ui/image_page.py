@@ -61,11 +61,9 @@ class ImagePage(ctk.CTkFrame):
             row.pack(fill="x", pady=2)
 
             vietnamese = item["vietnamese"] or item["english"]
-            text = f"{item['english']} - {vietnamese} [{item['category']}] ({item['confidence']:.2f})"
+            text = f"{item['english']} — {vietnamese} [{item['category']}] ({item['confidence']:.2f})"
             ctk.CTkLabel(row, text=text, anchor="w").pack(side="left", fill="x", expand=True)
             ctk.CTkButton(
-                row,
-                text="Phát âm",
-                width=80,
+                row, text="🔊", width=32,
                 command=lambda w=item["english"]: speak(w),
             ).pack(side="right")
