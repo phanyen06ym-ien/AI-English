@@ -15,14 +15,14 @@ from ml.features import build_vectorizer
 BASE_DIR = Path(__file__).resolve().parents[1]
 DATA_PATH = BASE_DIR / "dataset" / "vocabulary.csv"
 MODEL_PATH = BASE_DIR / "model" / "knn.pkl"
-REQUIRED_COLUMNS = ["english", "vietnamese", "category", "level", "frequency"]
-MODEL_VERSION = 1
+REQUIRED_COLUMNS = ["english", "vietnamese", "category", "level"]
+MODEL_VERSION = 2
 CATEGORY_WEIGHT = 5
 LEVEL_WEIGHT = 2
 
 
 def build_pipeline(n_neighbors=3):
-    """Giữ pipeline cũ để các file khác đang import không bị lỗi."""
+    """Giữ pipeline cũ để file khác import không lỗi."""
     return Pipeline([
         ("tfidf", build_vectorizer()),
         ("clf", KNeighborsClassifier(n_neighbors=n_neighbors)),
@@ -30,7 +30,7 @@ def build_pipeline(n_neighbors=3):
 
 
 def read_vocabulary():
-    """Đọc dữ liệu từ dataset/vocabulary.csv và kiểm tra đủ cột."""
+    """Đọc vocabulary.csv 4 cột: english, vietnamese, category, level."""
     df = pd.read_csv(DATA_PATH, encoding="utf-8-sig")
     missing = [col for col in REQUIRED_COLUMNS if col not in df.columns]
 
@@ -38,7 +38,7 @@ def read_vocabulary():
         raise ValueError(
             "Thiếu cột dữ liệu: "
             + ", ".join(missing)
-            + ". CSV cần có: english,vietnamese,category,level,frequency"
+            + ". CSV cần có: english,vietnamese,category,level"
         )
 
     df = df[REQUIRED_COLUMNS].copy()
@@ -46,29 +46,26 @@ def read_vocabulary():
     df["vietnamese"] = df["vietnamese"].astype(str).str.strip()
     df["category"] = df["category"].astype(str).str.strip()
     df["level"] = df["level"].astype(str).str.strip()
-    df["frequency"] = pd.to_numeric(df["frequency"], errors="coerce").fillna(0)
     return df.drop_duplicates(subset=["english"]).reset_index(drop=True)
 
 
 def _encode_column(df, column):
-    """Mã hóa category/level thành số theo thứ tự ổn định."""
+    """Mã hóa category/level thành số."""
     values = sorted(df[column].unique())
     mapping = {value: index for index, value in enumerate(values)}
     return df[column].map(mapping), mapping
 
 
 def build_features(df):
-    """Tạo feature cho k-NN: category, level, frequency, length."""
+    """Feature cho k-NN: category_encoded, level_encoded, length."""
     features = pd.DataFrame()
     features["category_encoded"], category_mapping = _encode_column(df, "category")
     features["level_encoded"], level_mapping = _encode_column(df, "level")
-    features["frequency"] = df["frequency"]
     features["length"] = df["english"].str.len()
     return features, category_mapping, level_mapping
 
 
 def _dataset_mtime():
-    """Lấy thời gian sửa vocabulary.csv để kiểm tra model còn mới không."""
     return DATA_PATH.stat().st_mtime
 
 
@@ -89,7 +86,6 @@ def train_knn_model():
     scaled_features = scaler.fit_transform(features)
     weighted_features = _apply_feature_weights(scaled_features)
 
-    # Dùng toàn bộ dữ liệu để khi gợi ý có thể bỏ qua chính từ đang nhập.
     model = NearestNeighbors(n_neighbors=len(df), metric="euclidean")
     model.fit(weighted_features)
 
@@ -130,7 +126,7 @@ def load_knn_model():
 
 
 def get_related_words(word, n=3):
-    """Trả về danh sách n từ vựng liên quan; không có từ thì trả []."""
+    """Trả về danh sách n từ liên quan; không có từ thì trả []."""
     data = load_knn_model()
     df = data["vocabulary"]
     word = str(word).strip().lower()
@@ -151,14 +147,12 @@ def get_related_words(word, n=3):
             continue
 
         row = df.iloc[index]
-        related_words.append(
-            {
-                "english": row["english"],
-                "vietnamese": row["vietnamese"],
-                "category": row["category"],
-                "level": row["level"],
-            }
-        )
+        related_words.append({
+            "english": row["english"],
+            "vietnamese": row["vietnamese"],
+            "category": row["category"],
+            "level": row["level"],
+        })
 
         if len(related_words) == n:
             break

@@ -12,12 +12,12 @@ from sklearn.preprocessing import StandardScaler
 BASE_DIR = Path(__file__).resolve().parents[1]
 DATA_PATH = BASE_DIR / "dataset" / "vocabulary.csv"
 MODEL_PATH = BASE_DIR / "model" / "kmeans.pkl"
-REQUIRED_COLUMNS = ["english", "vietnamese", "category", "level", "frequency"]
-MODEL_VERSION = 1
+REQUIRED_COLUMNS = ["english", "vietnamese", "category", "level"]
+MODEL_VERSION = 2
 
 
 def read_vocabulary():
-    """Đọc vocabulary.csv và kiểm tra đủ cột cần dùng."""
+    """Đọc vocabulary.csv 4 cột: english, vietnamese, category, level."""
     df = pd.read_csv(DATA_PATH, encoding="utf-8-sig")
     missing = [col for col in REQUIRED_COLUMNS if col not in df.columns]
 
@@ -25,7 +25,7 @@ def read_vocabulary():
         raise ValueError(
             "Thiếu cột dữ liệu: "
             + ", ".join(missing)
-            + ". CSV cần có: english,vietnamese,category,level,frequency"
+            + ". CSV cần có: english,vietnamese,category,level"
         )
 
     df = df[REQUIRED_COLUMNS].copy()
@@ -33,34 +33,31 @@ def read_vocabulary():
     df["vietnamese"] = df["vietnamese"].astype(str).str.strip()
     df["category"] = df["category"].astype(str).str.strip()
     df["level"] = df["level"].astype(str).str.strip()
-    df["frequency"] = pd.to_numeric(df["frequency"], errors="coerce").fillna(0)
     return df.drop_duplicates(subset=["english"]).reset_index(drop=True)
 
 
 def _encode_column(df, column):
-    """Mã hóa category/level thành số để K-Means xử lý được."""
+    """Mã hóa category/level thành số."""
     values = sorted(df[column].unique())
     mapping = {value: index for index, value in enumerate(values)}
     return df[column].map(mapping), mapping
 
 
 def build_features(df):
-    """Feature cho K-Means: length, frequency, category_encoded, level_encoded."""
+    """Feature cho K-Means: length, category_encoded, level_encoded."""
     features = pd.DataFrame()
     features["length"] = df["english"].str.len()
-    features["frequency"] = df["frequency"]
     features["category_encoded"], category_mapping = _encode_column(df, "category")
     features["level_encoded"], level_mapping = _encode_column(df, "level")
     return features, category_mapping, level_mapping
 
 
 def _dataset_mtime():
-    """Lấy thời gian sửa CSV để biết model còn mới hay không."""
     return DATA_PATH.stat().st_mtime
 
 
 def train_kmeans_model(n_clusters=4):
-    """Train K-Means để phân cụm từ vựng, không dùng như classifier."""
+    """Train K-Means để phân cụm từ vựng."""
     df = read_vocabulary()
     features, category_mapping, level_mapping = build_features(df)
 
