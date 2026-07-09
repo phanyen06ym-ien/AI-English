@@ -1,3 +1,8 @@
-MODEL_PATH = "model/yolov8n.pt"
-CONFIDENCE = 0.5
 CAMERA_ID = 0
+
+FRAME_WIDTH = 640
+FRAME_HEIGHT = 480
+
+YOLO_MODEL = "yolov8n.pt"
+
+CONFIDENCE = 0.5

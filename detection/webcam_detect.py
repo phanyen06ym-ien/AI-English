@@ -1,55 +1,53 @@
 import cv2
+
 from detection.detector import ObjectDetector
-from utils.translator import translate_object
 from utils.config import CAMERA_ID
+from utils.config import FRAME_WIDTH
+from utils.config import FRAME_HEIGHT
 
 
 def run_webcam():
+
     detector = ObjectDetector()
+
     cap = cv2.VideoCapture(CAMERA_ID)
 
     if not cap.isOpened():
         print("Không mở được webcam")
         return
 
-    print("Đang mở webcam... Nhấn Q để thoát.")
+    print("Đang mở webcam...")
 
     while True:
+
         ret, frame = cap.read()
 
         if not ret:
-            print("Không đọc được frame từ webcam")
             break
 
-        objects = detector.detect(frame)
+        # Resize
+        frame = cv2.resize(
+            frame,
+            (FRAME_WIDTH, FRAME_HEIGHT)
+        )
 
-        for obj in objects:
-            class_name = obj["class_name"]
-            vietnamese = translate_object(class_name)
-            confidence = obj["confidence"]
-            x1, y1, x2, y2 = obj["box"]
+        # Lật ảnh
+        frame = cv2.flip(frame, 1)
 
-            label = f"{class_name} - {vietnamese} ({confidence:.2f})"
+        # YOLO Detection
+        results = detector.detect(frame)
 
-            cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
-            cv2.putText(
-                frame,
-                label,
-                (x1, y1 - 10),
-                cv2.FONT_HERSHEY_SIMPLEX,
-                0.7,
-                (0, 255, 0),
-                2
-            )
+        # Vẽ Bounding Box
+        output = results[0].plot()
 
-        cv2.imshow("AI English - Webcam Detection", frame)
+        cv2.imshow(
+            "AI-English System",
+            output
+        )
 
         if cv2.waitKey(1) & 0xFF == ord("q"):
             break
 
     cap.release()
+
     cv2.destroyAllWindows()
-
-
-if __name__ == "__main__":
-    run_webcam()
