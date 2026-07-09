@@ -13,5 +13,5 @@ OBJECT_MAPPING = {
     "clock": "Đồng hồ",
     "monitor": "Màn hình",
     "notebook": "Vở",
-    "pen": "Bút"
+    "pen": "Bút",
 }

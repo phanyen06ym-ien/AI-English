@@ -1,5 +1,8 @@
-from dataset.object_mapping import OBJECT_MAPPING
+from googletrans import Translator
 
-
-def translate_object(class_name):
-    return OBJECT_MAPPING.get(class_name, class_name)
+def dich_tu(word):
+    try:
+        translator = Translator()
+        return translator.translate(word, dest='vi').text
+    except:
+        return "Không dịch được"
