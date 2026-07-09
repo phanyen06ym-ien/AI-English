@@ -1,5 +1,6 @@
-from detection.webcam_detect import run_webcam
+from ui.main_ui import run
+from utils.console import use_utf8_console
 
 if __name__ == "__main__":
-
-    run_webcam()
+    use_utf8_console()
+    run()

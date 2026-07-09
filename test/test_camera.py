@@ -1,12 +1,19 @@
 import cv2
 
-print("Đang kiểm tra camera...")
+for i in range(5):
+    print(f"\n===== Camera {i} =====")
 
-for index in range(5):
-    cap = cv2.VideoCapture(index)
+    cap = cv2.VideoCapture(i)
+
+    print("Opened:", cap.isOpened())
 
     if cap.isOpened():
-        print(f"Camera {index}: Hoạt động")
-        cap.release()
-    else:
-        print(f"Camera {index}: Không hoạt động")
+        ret, frame = cap.read()
+        print("Read:", ret)
+
+        if ret:
+            cv2.imshow(f"Camera {i}", frame)
+            cv2.waitKey(2000)
+            cv2.destroyAllWindows()
+
+    cap.release()
