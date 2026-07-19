@@ -3,7 +3,7 @@ import cv2
 from detection.classify import classify_word
 from detection.detector import ObjectDetector
 from utils.config import CAMERA_ID
-from utils.helper import draw_vietnamese_text
+from utils.helper import draw_vietnamese_text, open_camera
 
 
 WINDOW_NAME = "AI English - Webcam Detection"
@@ -11,7 +11,7 @@ WINDOW_NAME = "AI English - Webcam Detection"
 
 def run_webcam():
     detector = ObjectDetector()
-    cap = cv2.VideoCapture(CAMERA_ID)
+    cap = open_camera(CAMERA_ID)
 
     if not cap.isOpened():
         print("Không mở được webcam")

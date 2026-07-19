@@ -16,3 +16,5 @@ pandas
 openpyxl
 psycopg2-binary
 customtkinter
+pygame
+PySide6==6.11.1

@@ -6,6 +6,16 @@ from PIL import Image, ImageDraw, ImageFont
 FONT_PATH = "assets/fonts/NotoSans-Regular.ttf"
 
 
+def open_camera(camera_id):
+    """Mở webcam, ưu tiên backend DSHOW vì backend mặc định (MSMF) trên Windows
+    hay không mở được camera sau khi cập nhật driver/Windows Update."""
+    cap = cv2.VideoCapture(camera_id, cv2.CAP_DSHOW)
+    if not cap.isOpened():
+        cap.release()
+        cap = cv2.VideoCapture(camera_id)
+    return cap
+
+
 def xu_ly_all(word):
     # Chỉ import khi thật sự cần dịch/phát âm, tránh webcam phụ thuộc gTTS.
     from utils.speech import phat_am

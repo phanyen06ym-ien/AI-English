@@ -1,4 +1,4 @@
-from ui.main_ui import run
+from app_qt.main import run
 from utils.console import use_utf8_console
 
 if __name__ == "__main__":

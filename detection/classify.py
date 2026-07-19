@@ -10,7 +10,7 @@ def classify_word(english_name):
             "vietnamese": info["vietnamese"],
             "category": info["category"],
             "level": info["level"],
-            "frequency": info["frequency"],
+            "frequency": info.get("frequency"),
             "source": "lookup",
         }
 
