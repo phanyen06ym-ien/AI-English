@@ -1,48 +1,136 @@
-from ml.bayes import predict_word_level, read_vocabulary as read_bayes_vocabulary
-from ml.kmeans import cluster_vocabulary, get_words_in_same_cluster
+from __future__ import annotations
+
+from ml.features import read_vocabulary
+from ml.kmeans import (
+    cluster_vocabulary,
+    get_kmeans_metrics,
+    get_words_in_same_cluster,
+)
 from ml.knn import get_related_words
 
 
-def evaluate_bayes():
-    """Demo Bayes đúng vai trò: phân loại độ khó từ vựng."""
-    words = ["book", "keyboard", "backpack", "unknown_word"]
-    return {word: predict_word_level(word) for word in words}
+def evaluate_kmeans() -> dict:
+    """
+    Chạy K-Means và nhóm các từ theo cụm.
+    """
+    clusters: dict[int, list[str]] = {}
 
-
-def evaluate_kmeans():
-    """Demo K-Means đúng vai trò: phân cụm từ vựng không giám sát."""
-    clusters = {}
     for item in cluster_vocabulary():
-        clusters.setdefault(item["cluster"], []).append(item["english"])
+        cluster_id = item["cluster"]
+
+        clusters.setdefault(
+            cluster_id,
+            [],
+        ).append(
+            item["english"]
+        )
+
     return clusters
 
 
-def evaluate_knn():
-    """Demo k-NN đúng vai trò: gợi ý từ liên quan."""
-    words = ["laptop", "book", "bottle"]
-    return {word: [item["english"] for item in get_related_words(word)] for word in words}
+def evaluate_knn() -> dict:
+    """
+    Chạy thử k-NN với một số từ.
+    """
+    test_words = [
+        "laptop",
+        "book",
+        "bottle",
+    ]
+
+    results = {}
+
+    for word in test_words:
+        suggestions = get_related_words(
+            word,
+            n=3,
+        )
+
+        results[word] = [
+            item["english"]
+            for item in suggestions
+        ]
+
+    return results
 
 
-def run():
-    """In kết quả demo cho từng thuật toán theo đúng ý nghĩa báo cáo."""
-    df = read_bayes_vocabulary()
-    print(f"Số lượng từ vựng trong dataset: {len(df)}")
+def run() -> None:
+    """
+    In kết quả đánh giá k-NN và K-Means.
+    """
+    vocabulary = read_vocabulary()
 
-    print("\nNaive Bayes - phân loại độ khó:")
-    for word, level in evaluate_bayes().items():
-        print(f"  {word}: {level}")
+    print("=" * 60)
+    print("ĐÁNH GIÁ CÁC THUẬT TOÁN MACHINE LEARNING")
+    print("=" * 60)
 
-    print("\nK-Means - phân cụm từ vựng:")
-    for cluster, words in sorted(evaluate_kmeans().items()):
-        print(f"  Cụm {cluster}: {', '.join(words)}")
+    print(
+        f"Số lượng từ vựng: {len(vocabulary)}"
+    )
 
-    print("\nk-NN - gợi ý từ liên quan:")
-    for word, related_words in evaluate_knn().items():
-        print(f"  {word}: {', '.join(related_words)}")
+    print("\n1. K-MEANS - PHÂN CỤM TỪ VỰNG")
 
-    print("\nCác từ cùng cụm với laptop:")
-    same_cluster = [item["english"] for item in get_words_in_same_cluster("laptop")]
-    print(f"  {', '.join(same_cluster)}")
+    clusters = evaluate_kmeans()
+
+    for cluster_id, words in sorted(
+        clusters.items()
+    ):
+        print(
+            f"Cụm {cluster_id}: "
+            f"{', '.join(words)}"
+        )
+
+    metrics = get_kmeans_metrics()
+
+    print("\nChỉ số K-Means:")
+
+    print(
+        f"- Số cụm: "
+        f"{metrics['n_clusters']}"
+    )
+
+    print(
+        f"- Inertia/SSE: "
+        f"{metrics['inertia']:.4f}"
+    )
+
+    silhouette = metrics[
+        "silhouette_score"
+    ]
+
+    if silhouette is not None:
+        print(
+            f"- Silhouette Score: "
+            f"{silhouette:.4f}"
+        )
+
+    print("\n2. k-NN - GỢI Ý TỪ LIÊN QUAN")
+
+    knn_results = evaluate_knn()
+
+    for word, related_words in (
+        knn_results.items()
+    ):
+        print(
+            f"{word}: "
+            f"{', '.join(related_words)}"
+        )
+
+    print("\n3. CÁC TỪ CÙNG CỤM VỚI LAPTOP")
+
+    same_cluster = get_words_in_same_cluster(
+        "laptop"
+    )
+
+    if same_cluster:
+        print(
+            ", ".join(
+                item["english"]
+                for item in same_cluster
+            )
+        )
+    else:
+        print("Không có từ cùng cụm.")
 
 
 if __name__ == "__main__":

@@ -1,6 +1,5 @@
 import sys
 
-from ml.bayes import predict_word_level
 from ml.kmeans import get_cluster_by_word, get_words_in_same_cluster
 from ml.knn import get_related_words
 
@@ -32,11 +31,6 @@ def test_kmeans():
     print_words(get_words_in_same_cluster("laptop"))
 
 
-def test_bayes():
-    print("\n=== Naive Bayes: phân loại độ khó ===")
-    for word in ["book", "keyboard", "backpack", "unknown_word"]:
-        print(f"Level của {word}: {predict_word_level(word)}")
-
 
 def test_knn():
     print("\n=== k-NN: gợi ý từ liên quan ===")
@@ -47,5 +41,4 @@ def test_knn():
 
 if __name__ == "__main__":
     test_kmeans()
-    test_bayes()
     test_knn()

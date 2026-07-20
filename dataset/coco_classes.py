@@ -1,15 +1,14 @@
 COCO_CLASSES = [
     "person",
-    "book",
     "backpack",
-    "laptop",
-    "cell phone",
-    "mouse",
-    "keyboard",
-    "chair",
-    "dining table",
+    "book",
     "bottle",
-    "cup",
+    "cell phone",
+    "chair",
     "clock",
-    "tv"
+    "cup",
+    "dining table",
+    "keyboard",
+    "laptop",
+    "mouse",
 ]

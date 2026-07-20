@@ -1,0 +1,19 @@
+path: D:/DEV/Projects/AI-English/dataset/yolo_dataset
+
+train: train/images
+val: valid/images
+test: test/images
+
+names:
+  0: person
+  1: backpack
+  2: book
+  3: bottle
+  4: cell phone
+  5: chair
+  6: clock
+  7: cup
+  8: dining table
+  9: keyboard
+  10: laptop
+  11: mouse

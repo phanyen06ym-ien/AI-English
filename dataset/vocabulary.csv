@@ -1,17 +1,13 @@
 english,vietnamese,category,level
 person,Người,Human,Easy
-book,Sách,Study,Easy
 backpack,Ba lô,Study,Easy
-laptop,Máy tính xách tay,Technology,Medium
-cell phone,Điện thoại,Technology,Easy
-mouse,Chuột máy tính,Technology,Medium
-keyboard,Bàn phím,Technology,Medium
-chair,Ghế,Furniture,Easy
-dining table,Bàn,Furniture,Medium
+book,Sách,Study,Easy
 bottle,Chai nước,Daily,Easy
-cup,Cốc,Daily,Easy
+cell phone,Điện thoại,Technology,Easy
+chair,Ghế,Furniture,Easy
 clock,Đồng hồ,Daily,Easy
-tv,Tivi,Technology,Easy
-monitor,Màn hình,Technology,Medium
-notebook,Vở,Study,Easy
-pen,Bút,Study,Easy
+cup,Cốc,Daily,Easy
+dining table,Bàn,Furniture,Medium
+keyboard,Bàn phím,Technology,Medium
+laptop,Máy tính xách tay,Technology,Medium
+mouse,Chuột máy tính,Technology,Medium

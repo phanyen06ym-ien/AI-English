@@ -11,8 +11,8 @@ python-dotenv
 pyttsx3
 gTTS
 googletrans==4.0.0rc1
-pyodbc
+psycopg2-binary
 pandas
 openpyxl
-psycopg2-binary
-customtkinter
+PySide6
+bcrypt

@@ -6,7 +6,12 @@ from detection.detector import ObjectDetector
 from utils.helper import draw_vietnamese_text
 
 
-def detect_image(image_path, detector=None, show_window=True):
+def detect_image(
+    image_path,
+    detector=None,
+    show_window=True,
+    user_id=None,
+):
     """Nhận dạng vật thể trong ảnh và trả về ảnh đã vẽ nhãn cùng kết quả."""
     detector = detector or ObjectDetector()
     image = cv2.imread(image_path)
@@ -27,8 +32,13 @@ def detect_image(image_path, detector=None, show_window=True):
 
         label = f"{class_name} - {vietnamese} [{info['category']}] ({confidence:.2f})"
         results.append({**info, "confidence": confidence, "box": obj["box"]})
-        save_history(class_name, vietnamese, info["category"], confidence)
-
+        save_history(
+            class_name,
+            vietnamese,
+            info["category"],
+            confidence,
+            user_id=user_id,
+        )
         cv2.rectangle(image, (x1, y1), (x2, y2), (0, 255, 0), 2)
         image = draw_vietnamese_text(
             image,
