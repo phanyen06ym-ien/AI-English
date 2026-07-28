@@ -1,0 +1,151 @@
+﻿input_word,input_category,input_level,n,rank,suggested_word,suggested_vietnamese,suggested_category,suggested_level,distance,same_category,same_level
+laptop,Technology,Medium,3,1,mouse,Chuột máy tính,Technology,Medium,0.2027212135198429,True,True
+laptop,Technology,Medium,3,2,keyboard,Bàn phím,Technology,Medium,0.4054424270396858,True,True
+laptop,Technology,Medium,3,3,cell phone,Điện thoại,Technology,Easy,4.31943679738173,True,False
+laptop,Technology,Medium,5,1,mouse,Chuột máy tính,Technology,Medium,0.2027212135198429,True,True
+laptop,Technology,Medium,5,2,keyboard,Bàn phím,Technology,Medium,0.4054424270396858,True,True
+laptop,Technology,Medium,5,3,cell phone,Điện thoại,Technology,Easy,4.31943679738173,True,False
+laptop,Technology,Medium,5,4,bottle,Chai nước,Daily,Easy,16.242947187420558,False,False
+laptop,Technology,Medium,5,5,clock,Đồng hồ,Daily,Easy,16.244212176148903,False,False
+laptop,Technology,Medium,7,1,mouse,Chuột máy tính,Technology,Medium,0.2027212135198429,True,True
+laptop,Technology,Medium,7,2,keyboard,Bàn phím,Technology,Medium,0.4054424270396858,True,True
+laptop,Technology,Medium,7,3,cell phone,Điện thoại,Technology,Easy,4.31943679738173,True,False
+laptop,Technology,Medium,7,4,bottle,Chai nước,Daily,Easy,16.242947187420558,False,False
+laptop,Technology,Medium,7,5,clock,Đồng hồ,Daily,Easy,16.244212176148903,False,False
+laptop,Technology,Medium,7,6,cup,Cốc,Daily,Easy,16.254328541869455,False,False
+laptop,Technology,Medium,7,7,dining table,Bàn,Furniture,Medium,17.145828998762195,False,True
+keyboard,Technology,Medium,3,1,laptop,Máy tính xách tay,Technology,Medium,0.4054424270396858,True,True
+keyboard,Technology,Medium,3,2,mouse,Chuột máy tính,Technology,Medium,0.6081636405595287,True,True
+keyboard,Technology,Medium,3,3,cell phone,Điện thoại,Technology,Easy,4.261969446352689,True,False
+keyboard,Technology,Medium,5,1,laptop,Máy tính xách tay,Technology,Medium,0.4054424270396858,True,True
+keyboard,Technology,Medium,5,2,mouse,Chuột máy tính,Technology,Medium,0.6081636405595287,True,True
+keyboard,Technology,Medium,5,3,cell phone,Điện thoại,Technology,Easy,4.261969446352689,True,False
+keyboard,Technology,Medium,5,4,bottle,Chai nước,Daily,Easy,16.248006551419692,False,False
+keyboard,Technology,Medium,5,5,clock,Đồng hồ,Daily,Easy,16.254328541869455,False,False
+keyboard,Technology,Medium,7,1,laptop,Máy tính xách tay,Technology,Medium,0.4054424270396858,True,True
+keyboard,Technology,Medium,7,2,mouse,Chuột máy tính,Technology,Medium,0.6081636405595287,True,True
+keyboard,Technology,Medium,7,3,cell phone,Điện thoại,Technology,Easy,4.261969446352689,True,False
+keyboard,Technology,Medium,7,4,bottle,Chai nước,Daily,Easy,16.248006551419692,False,False
+keyboard,Technology,Medium,7,5,clock,Đồng hồ,Daily,Easy,16.254328541869455,False,False
+keyboard,Technology,Medium,7,6,cup,Cốc,Daily,Easy,16.274542408117263,False,False
+keyboard,Technology,Medium,7,7,dining table,Bàn,Furniture,Medium,17.121843774739197,False,True
+mouse,Technology,Medium,3,1,laptop,Máy tính xách tay,Technology,Medium,0.2027212135198429,True,True
+mouse,Technology,Medium,3,2,keyboard,Bàn phím,Technology,Medium,0.6081636405595287,True,True
+mouse,Technology,Medium,3,3,cell phone,Điện thoại,Technology,Easy,4.362040492736626,True,False
+mouse,Technology,Medium,5,1,laptop,Máy tính xách tay,Technology,Medium,0.2027212135198429,True,True
+mouse,Technology,Medium,5,2,keyboard,Bàn phím,Technology,Medium,0.6081636405595287,True,True
+mouse,Technology,Medium,5,3,cell phone,Điện thoại,Technology,Easy,4.362040492736626,True,False
+mouse,Technology,Medium,5,4,clock,Đồng hồ,Daily,Easy,16.242947187420558,False,False
+mouse,Technology,Medium,5,5,bottle,Chai nước,Daily,Easy,16.244212176148903,False,False
+mouse,Technology,Medium,7,1,laptop,Máy tính xách tay,Technology,Medium,0.2027212135198429,True,True
+mouse,Technology,Medium,7,2,keyboard,Bàn phím,Technology,Medium,0.6081636405595287,True,True
+mouse,Technology,Medium,7,3,cell phone,Điện thoại,Technology,Easy,4.362040492736626,True,False
+mouse,Technology,Medium,7,4,clock,Đồng hồ,Daily,Easy,16.242947187420558,False,False
+mouse,Technology,Medium,7,5,bottle,Chai nước,Daily,Easy,16.244212176148903,False,False
+mouse,Technology,Medium,7,6,cup,Cốc,Daily,Easy,16.248006551419692,False,False
+mouse,Technology,Medium,7,7,dining table,Bàn,Furniture,Medium,17.16140141801179,False,True
+book,Study,Easy,3,1,backpack,Ba lô,Study,Easy,0.8108848540794067,True,True
+book,Study,Easy,3,2,cell phone,Điện thoại,Technology,Easy,17.145828998762195,False,True
+book,Study,Easy,3,3,mouse,Chuột máy tính,Technology,Medium,17.62217625296067,False,False
+book,Study,Easy,5,1,backpack,Ba lô,Study,Easy,0.8108848540794067,True,True
+book,Study,Easy,5,2,cell phone,Điện thoại,Technology,Easy,17.145828998762195,False,True
+book,Study,Easy,5,3,mouse,Chuột máy tính,Technology,Medium,17.62217625296067,False,False
+book,Study,Easy,5,4,laptop,Máy tính xách tay,Technology,Medium,17.625673988861926,False,False
+book,Study,Easy,5,5,keyboard,Bàn phím,Technology,Medium,17.639657996871012,False,False
+book,Study,Easy,7,1,backpack,Ba lô,Study,Easy,0.8108848540794067,True,True
+book,Study,Easy,7,2,cell phone,Điện thoại,Technology,Easy,17.145828998762195,False,True
+book,Study,Easy,7,3,mouse,Chuột máy tính,Technology,Medium,17.62217625296067,False,False
+book,Study,Easy,7,4,laptop,Máy tính xách tay,Technology,Medium,17.625673988861926,False,False
+book,Study,Easy,7,5,keyboard,Bàn phím,Technology,Medium,17.639657996871012,False,False
+book,Study,Easy,7,6,clock,Đồng hồ,Daily,Easy,17.702384845656937,False,True
+book,Study,Easy,7,7,cup,Cốc,Daily,Easy,17.702384845656937,False,True
+bottle,Daily,Easy,3,1,clock,Đồng hồ,Daily,Easy,0.202721213519913,True,True
+bottle,Daily,Easy,3,2,cup,Cốc,Daily,Easy,0.6081636405595521,True,True
+bottle,Daily,Easy,3,3,cell phone,Điện thoại,Technology,Easy,15.700027629909087,False,True
+bottle,Daily,Easy,5,1,clock,Đồng hồ,Daily,Easy,0.202721213519913,True,True
+bottle,Daily,Easy,5,2,cup,Cốc,Daily,Easy,0.6081636405595521,True,True
+bottle,Daily,Easy,5,3,cell phone,Điện thoại,Technology,Easy,15.700027629909087,False,True
+bottle,Daily,Easy,5,4,laptop,Máy tính xách tay,Technology,Medium,16.242947187420558,False,False
+bottle,Daily,Easy,5,5,mouse,Chuột máy tính,Technology,Medium,16.244212176148903,False,False
+bottle,Daily,Easy,7,1,clock,Đồng hồ,Daily,Easy,0.202721213519913,True,True
+bottle,Daily,Easy,7,2,cup,Cốc,Daily,Easy,0.6081636405595521,True,True
+bottle,Daily,Easy,7,3,cell phone,Điện thoại,Technology,Easy,15.700027629909087,False,True
+bottle,Daily,Easy,7,4,laptop,Máy tính xách tay,Technology,Medium,16.242947187420558,False,False
+bottle,Daily,Easy,7,5,mouse,Chuột máy tính,Technology,Medium,16.244212176148903,False,False
+bottle,Daily,Easy,7,6,keyboard,Bàn phím,Technology,Medium,16.248006551419692,False,False
+bottle,Daily,Easy,7,7,chair,Ghế,Furniture,Easy,17.702384845656937,False,True
+cup,Daily,Easy,3,1,clock,Đồng hồ,Daily,Easy,0.40544242703972083,True,True
+cup,Daily,Easy,3,2,bottle,Chai nước,Daily,Easy,0.6081636405595521,True,True
+cup,Daily,Easy,3,3,cell phone,Điện thoại,Technology,Easy,15.743158258858683,False,True
+cup,Daily,Easy,5,1,clock,Đồng hồ,Daily,Easy,0.40544242703972083,True,True
+cup,Daily,Easy,5,2,bottle,Chai nước,Daily,Easy,0.6081636405595521,True,True
+cup,Daily,Easy,5,3,cell phone,Điện thoại,Technology,Easy,15.743158258858683,False,True
+cup,Daily,Easy,5,4,mouse,Chuột máy tính,Technology,Medium,16.248006551419692,False,False
+cup,Daily,Easy,5,5,laptop,Máy tính xách tay,Technology,Medium,16.254328541869455,False,False
+cup,Daily,Easy,7,1,clock,Đồng hồ,Daily,Easy,0.40544242703972083,True,True
+cup,Daily,Easy,7,2,bottle,Chai nước,Daily,Easy,0.6081636405595521,True,True
+cup,Daily,Easy,7,3,cell phone,Điện thoại,Technology,Easy,15.743158258858683,False,True
+cup,Daily,Easy,7,4,mouse,Chuột máy tính,Technology,Medium,16.248006551419692,False,False
+cup,Daily,Easy,7,5,laptop,Máy tính xách tay,Technology,Medium,16.254328541869455,False,False
+cup,Daily,Easy,7,6,keyboard,Bàn phím,Technology,Medium,16.274542408117263,False,False
+cup,Daily,Easy,7,7,book,Sách,Study,Easy,17.702384845656937,False,True
+chair,Furniture,Easy,3,1,dining table,Bàn,Furniture,Medium,4.473667246246304,True,False
+chair,Furniture,Easy,3,2,cell phone,Điện thoại,Technology,Easy,17.132641280908032,False,True
+chair,Furniture,Easy,3,3,mouse,Chuột máy tính,Technology,Medium,17.621010186706098,False,False
+chair,Furniture,Easy,5,1,dining table,Bàn,Furniture,Medium,4.473667246246304,True,False
+chair,Furniture,Easy,5,2,cell phone,Điện thoại,Technology,Easy,17.132641280908032,False,True
+chair,Furniture,Easy,5,3,mouse,Chuột máy tính,Technology,Medium,17.621010186706098,False,False
+chair,Furniture,Easy,5,4,laptop,Máy tính xách tay,Technology,Medium,17.62217625296067,False,False
+chair,Furniture,Easy,5,5,keyboard,Bàn phím,Technology,Medium,17.631502006740625,False,False
+chair,Furniture,Easy,7,1,dining table,Bàn,Furniture,Medium,4.473667246246304,True,False
+chair,Furniture,Easy,7,2,cell phone,Điện thoại,Technology,Easy,17.132641280908032,False,True
+chair,Furniture,Easy,7,3,mouse,Chuột máy tính,Technology,Medium,17.621010186706098,False,False
+chair,Furniture,Easy,7,4,laptop,Máy tính xách tay,Technology,Medium,17.62217625296067,False,False
+chair,Furniture,Easy,7,5,keyboard,Bàn phím,Technology,Medium,17.631502006740625,False,False
+chair,Furniture,Easy,7,6,clock,Đồng hồ,Daily,Easy,17.701224063135676,False,True
+chair,Furniture,Easy,7,7,bottle,Chai nước,Daily,Easy,17.702384845656937,False,True
+person,Human,Easy,3,1,cell phone,Điện thoại,Technology,Easy,20.986430413943733,False,True
+person,Human,Easy,3,2,laptop,Máy tính xách tay,Technology,Medium,21.39562402157804,False,False
+person,Human,Easy,3,3,mouse,Chuột máy tính,Technology,Medium,21.39658438076363,False,False
+person,Human,Easy,5,1,cell phone,Điện thoại,Technology,Easy,20.986430413943733,False,True
+person,Human,Easy,5,2,laptop,Máy tính xách tay,Technology,Medium,21.39562402157804,False,False
+person,Human,Easy,5,3,mouse,Chuột máy tính,Technology,Medium,21.39658438076363,False,False
+person,Human,Easy,5,4,keyboard,Bàn phím,Technology,Medium,21.39946519972803,False,False
+person,Human,Easy,5,5,bottle,Chai nước,Daily,Easy,21.46173479954639,False,True
+person,Human,Easy,7,1,cell phone,Điện thoại,Technology,Easy,20.986430413943733,False,True
+person,Human,Easy,7,2,laptop,Máy tính xách tay,Technology,Medium,21.39562402157804,False,False
+person,Human,Easy,7,3,mouse,Chuột máy tính,Technology,Medium,21.39658438076363,False,False
+person,Human,Easy,7,4,keyboard,Bàn phím,Technology,Medium,21.39946519972803,False,False
+person,Human,Easy,7,5,bottle,Chai nước,Daily,Easy,21.46173479954639,False,True
+person,Human,Easy,7,6,clock,Đồng hồ,Daily,Easy,21.462692200571475,False,True
+person,Human,Easy,7,7,cup,Cốc,Daily,Easy,21.47034987185256,False,True
+backpack,Study,Easy,3,1,book,Sách,Study,Easy,0.8108848540794067,True,True
+backpack,Study,Easy,3,2,cell phone,Điện thoại,Technology,Easy,17.107436498834183,False,True
+backpack,Study,Easy,3,3,keyboard,Bàn phím,Technology,Medium,17.621010186706098,False,False
+backpack,Study,Easy,5,1,book,Sách,Study,Easy,0.8108848540794067,True,True
+backpack,Study,Easy,5,2,cell phone,Điện thoại,Technology,Easy,17.107436498834183,False,True
+backpack,Study,Easy,5,3,keyboard,Bàn phím,Technology,Medium,17.621010186706098,False,False
+backpack,Study,Easy,5,4,laptop,Máy tính xách tay,Technology,Medium,17.625673988861926,False,False
+backpack,Study,Easy,5,5,mouse,Chuột máy tính,Technology,Medium,17.631502006740625,False,False
+backpack,Study,Easy,7,1,book,Sách,Study,Easy,0.8108848540794067,True,True
+backpack,Study,Easy,7,2,cell phone,Điện thoại,Technology,Easy,17.107436498834183,False,True
+backpack,Study,Easy,7,3,keyboard,Bàn phím,Technology,Medium,17.621010186706098,False,False
+backpack,Study,Easy,7,4,laptop,Máy tính xách tay,Technology,Medium,17.625673988861926,False,False
+backpack,Study,Easy,7,5,mouse,Chuột máy tính,Technology,Medium,17.631502006740625,False,False
+backpack,Study,Easy,7,6,bottle,Chai nước,Daily,Easy,17.70586673662087,False,True
+backpack,Study,Easy,7,7,clock,Đồng hồ,Daily,Easy,17.711668367125444,False,True
+clock,Daily,Easy,3,1,bottle,Chai nước,Daily,Easy,0.202721213519913,True,True
+clock,Daily,Easy,3,2,cup,Cốc,Daily,Easy,0.40544242703972083,True,True
+clock,Daily,Easy,3,3,cell phone,Điện thoại,Technology,Easy,15.711802270701071,False,True
+clock,Daily,Easy,5,1,bottle,Chai nước,Daily,Easy,0.202721213519913,True,True
+clock,Daily,Easy,5,2,cup,Cốc,Daily,Easy,0.40544242703972083,True,True
+clock,Daily,Easy,5,3,cell phone,Điện thoại,Technology,Easy,15.711802270701071,False,True
+clock,Daily,Easy,5,4,mouse,Chuột máy tính,Technology,Medium,16.242947187420558,False,False
+clock,Daily,Easy,5,5,laptop,Máy tính xách tay,Technology,Medium,16.244212176148903,False,False
+clock,Daily,Easy,7,1,bottle,Chai nước,Daily,Easy,0.202721213519913,True,True
+clock,Daily,Easy,7,2,cup,Cốc,Daily,Easy,0.40544242703972083,True,True
+clock,Daily,Easy,7,3,cell phone,Điện thoại,Technology,Easy,15.711802270701071,False,True
+clock,Daily,Easy,7,4,mouse,Chuột máy tính,Technology,Medium,16.242947187420558,False,False
+clock,Daily,Easy,7,5,laptop,Máy tính xách tay,Technology,Medium,16.244212176148903,False,False
+clock,Daily,Easy,7,6,keyboard,Bàn phím,Technology,Medium,16.254328541869455,False,False
+clock,Daily,Easy,7,7,chair,Ghế,Furniture,Easy,17.701224063135676,False,True

@@ -1,0 +1,54 @@
+THỰC NGHIỆM K-NN GỢI Ý TỪ VỰNG
+============================================================
+
+1. Thống kê dataset
+- Tổng số dòng ban đầu: 12
+- Tổng số từ sau chuẩn hóa: 12
+- Số từ bị trùng theo cột english: 0
+- Số dòng thiếu dữ liệu:
+  + english: 0
+  + vietnamese: 0
+  + category: 0
+  + level: 0
+- Số chủ đề khác nhau: 5
+- Danh sách chủ đề: Daily, Furniture, Human, Study, Technology
+- Số từ thuộc từng chủ đề:
+  + Daily: 3
+  + Furniture: 2
+  + Human: 1
+  + Study: 2
+  + Technology: 4
+- Số từ thuộc từng mức độ:
+  + Easy: 8
+  + Medium: 4
+  + Hard: 0
+
+2. Cấu hình k-NN
+- Đặc trưng: word_length, level_encoded, one-hot category
+- Chuẩn hóa: StandardScaler
+- Trọng số: CATEGORY_WEIGHT=5.0, LEVEL_WEIGHT=2.0, WORD_LENGTH_WEIGHT=0.5
+- Mô hình: NearestNeighbors(metric="euclidean")
+
+3. Số từ kiểm thử
+- Số từ đầu vào đã kiểm thử: 10
+- Danh sách từ kiểm thử: laptop, keyboard, mouse, book, bottle, cup, chair, person, backpack, clock
+
+4. Kết quả n=3, n=5, n=7
+ n  tested_input_words  total_suggestions  same_category_suggestions avg_category_precision  same_level_suggestions avg_level_precision avg_mean_distance avg_mrr_category
+ 3                  10                 30                         18                 60.00%                      21              70.00%            7.9696           0.9000
+ 5                  10                 50                         18                 36.00%                      22              44.00%           11.6536           0.9000
+ 7                  10                 70                         18                 25.71%                      36              51.43%           13.3418           0.9000
+
+5. Giá trị n được chọn
+- Giá trị n phù hợp nhất trong thực nghiệm là 3.
+- Lý do: có Category Precision trung bình 60.00%, MRR-category trung bình 0.9000, Mean Distance trung bình 7.9696.
+
+6. Các trường hợp đặc biệt
+- Từ không tồn tại: input='this_word_does_not_exist', n=3, số gợi ý=0, kỳ vọng=Danh sách rỗng, kết quả=ĐẠT, thời gian=1.212 ms
+- Chuỗi rỗng: input='', n=3, số gợi ý=0, kỳ vọng=Danh sách rỗng, kết quả=ĐẠT, thời gian=0.003 ms
+- Chữ hoa và khoảng trắng: input='  LAPTOP  ', n=3, số gợi ý=3, kỳ vọng=Kết quả giống khi nhập "laptop", kết quả=ĐẠT, thời gian=10.091 ms
+- n lớn hơn số lượng từ hiện có: input='person', n=112, số gợi ý=11, kỳ vọng=Không lỗi và giới hạn số kết quả hợp lệ, kết quả=ĐẠT, thời gian=9.407 ms
+
+7. Thời gian chạy thực nghiệm
+- Tổng thời gian chạy: 13645.356 ms
+- Thời gian trung bình cho một truy vấn gợi ý: 125.632 ms

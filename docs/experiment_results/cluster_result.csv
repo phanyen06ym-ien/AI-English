@@ -1,0 +1,13 @@
+﻿english,category,level,cluster
+person,Human,Easy,2
+backpack,Study,Easy,4
+book,Study,Easy,4
+bottle,Daily,Easy,1
+cell phone,Technology,Easy,0
+chair,Furniture,Easy,3
+clock,Daily,Easy,1
+cup,Daily,Easy,1
+dining table,Furniture,Medium,3
+keyboard,Technology,Medium,0
+laptop,Technology,Medium,0
+mouse,Technology,Medium,0

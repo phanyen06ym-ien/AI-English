@@ -1,0 +1,4 @@
+﻿n,tested_input_words,total_suggestions,same_category_suggestions,avg_category_precision,same_level_suggestions,avg_level_precision,avg_mean_distance,avg_mrr_category
+3,10,30,18,0.6,21,0.7,7.969597439866139,0.9
+5,10,50,18,0.36,22,0.44000000000000006,11.65357234154303,0.9
+7,10,70,18,0.25714285714285706,36,0.5142857142857142,13.341805654317199,0.9
