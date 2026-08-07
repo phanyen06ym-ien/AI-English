@@ -1,28 +1,12 @@
+"""Compatibility shim.
+
+`SpeakTask` da chuyen sang `ui.workers.speech_worker` trong Sprint 3.
+Module nay duoc giu de import cu khong bi vo.
+"""
+
 from __future__ import annotations
 
-from PySide6.QtCore import QRunnable
-
-from utils.speech import speak
+from ui.workers.speech_worker import SpeakTask
 
 
-class SpeakTask(QRunnable):
-    """
-    Chạy phát âm trong thread nền để UI không bị đứng.
-    """
-
-    def __init__(
-        self,
-        word: str,
-    ) -> None:
-        super().__init__()
-
-        self.word = word
-
-    def run(self) -> None:
-        try:
-            speak(self.word)
-
-        except Exception as error:
-            print(
-                f"Không phát được âm thanh: {error}"
-            )
+__all__ = ["SpeakTask"]

@@ -1,166 +1,72 @@
+"""Thin Controller cho man hinh thong ke.
+
+Cong thuc thong ke da chuyen sang `ui.services.stats_service`; `EMPTY_STATS` va
+`StatsWorker` duoc re-export de import cu khong bi vo.
+"""
+
 from __future__ import annotations
 
-from collections import Counter
-
 from PySide6.QtCore import (
+    Property,
     QObject,
-    QThread,
     Signal,
     Slot,
 )
 
-from database.history import get_history
-from utils import perf_monitor
+from ui.services.stats_service import EMPTY_STATS
+from ui.ui_logger import get_ui_logger, log_ui_event
+from ui.viewmodels.statistics_viewmodel import StatisticsViewModel
+from ui.workers.stats_worker import StatsWorker
 
 
-EMPTY_STATS = {
-    "totalDetections": 0,
-    "uniqueWords": 0,
-    "mostCommonWord": "",
-    "mostDetectedWord": "",
-    "averageConfidence": 0.0,
-    "categories": {},
-}
-
-
-class StatsWorker(QThread):
-    loaded = Signal(dict)
-    failed = Signal(str)
-
-    def __init__(
-        self,
-        user_id: int,
-        parent=None,
-    ) -> None:
-        super().__init__(parent)
-        self.user_id = user_id
-
-    def run(self) -> None:
-        try:
-            with perf_monitor.timer("stats_refresh_get_history"):
-                history_rows = get_history(
-                    user_id=self.user_id,
-                    limit=500,
-                )
-
-            category_counter = Counter()
-            word_counter = Counter()
-            confidence_values = []
-
-            for row in history_rows:
-                word = row.get("english_word")
-                category = (
-                    row.get("category")
-                    or "Unknown"
-                )
-
-                if word:
-                    word_counter[word] += 1
-
-                confidence_values.append(
-                    float(
-                        row.get("confidence")
-                        or 0.0
-                    )
-                )
-                category_counter[category] += 1
-
-            most_common_word = ""
-            if word_counter:
-                most_common_word = (
-                    word_counter.most_common(1)[0][0]
-                )
-
-            average_confidence = 0.0
-            if confidence_values:
-                average_confidence = (
-                    sum(confidence_values)
-                    / len(confidence_values)
-                )
-
-            self.loaded.emit(
-                {
-                    "totalDetections": len(
-                        history_rows
-                    ),
-                    "uniqueWords": len(
-                        word_counter
-                    ),
-                    "mostCommonWord": (
-                        most_common_word
-                    ),
-                    "mostDetectedWord": (
-                        most_common_word
-                    ),
-                    "averageConfidence": float(
-                        average_confidence
-                    ),
-                    "categories": dict(
-                        category_counter
-                    ),
-                }
-            )
-
-        except Exception as error:
-            self.failed.emit(str(error))
+logger = get_ui_logger("stats_controller")
 
 
 class StatsController(QObject):
+    """Adapter giua QML va `StatisticsViewModel`."""
+
     statsChanged = Signal(dict)
 
     def __init__(
         self,
+        view_model: StatisticsViewModel,
         parent=None,
     ) -> None:
         super().__init__(parent)
-        self._user_id = None
-        self._worker = None
+
+        self._view_model = view_model
+
+        self._view_model.StatisticsUpdated.connect(
+            self.statsChanged
+        )
+
+    @property
+    def view_model(self) -> StatisticsViewModel:
+        return self._view_model
+
+    @Property("QVariantMap", notify=statsChanged)
+    def statistics(self) -> dict:
+        return self._view_model.statistics
 
     def set_user_id(
         self,
         user_id: int | None,
     ) -> None:
-        self._user_id = user_id
-        if user_id is None:
-            self.clear()
+        self._view_model.set_user_id(user_id)
 
+    @Slot()
     def clear(self) -> None:
-        self.statsChanged.emit(dict(EMPTY_STATS))
+        self._view_model.clear()
 
     @Slot()
     def refresh(self) -> None:
-        perf_monitor.increment("stats_refresh_called")
+        log_ui_event(logger, "stats_refresh_requested")
 
-        if self._user_id is None:
-            self.clear()
-            return
+        self._view_model.refresh()
 
-        if self._worker is not None:
-            perf_monitor.increment("stats_refresh_skipped_busy")
-            return
 
-        self._worker = StatsWorker(
-            int(self._user_id)
-        )
-        self._worker.loaded.connect(
-            self.statsChanged
-        )
-        self._worker.failed.connect(
-            self._on_failed
-        )
-        self._worker.finished.connect(
-            self._on_finished
-        )
-        self._worker.start()
-
-    def _on_failed(
-        self,
-        message: str,
-    ) -> None:
-        print(
-            f"Khong the tai thong ke: {message}"
-        )
-        self.clear()
-
-    def _on_finished(self) -> None:
-        self._worker = None
+__all__ = [
+    "StatsController",
+    "StatsWorker",
+    "EMPTY_STATS",
+]

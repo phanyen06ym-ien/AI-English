@@ -1,96 +1,60 @@
+"""Thin Controller cho man hinh anh tinh.
+
+Sau Sprint 3 file nay KHONG con:
+
+- goi `AIEngine`            -> `ImageViewModel` -> `DetectionService`
+- goi `save_history()`      -> `HistoryService`
+- goi `cv2` / `draw_*`      -> `AnnotationService`
+- tao/quan ly QThread       -> `ImageWorker` / `PreviewLoadWorker`
+
+Controller chi con 3 viec:
+
+1. Nhan event tu QML (Slot).
+2. Goi ViewModel.
+3. Chuyen tiep Signal cua ViewModel sang dung ten legacy ma QML dang bind.
+
+Toan bo Property / Signal / Slot public duoc giu NGUYEN TEN de khong phai sua QML.
+"""
+
 from __future__ import annotations
 
-import cv2
 from PySide6.QtCore import (
-    QObject,
     Property,
-    QThread,
-    QThreadPool,
+    QObject,
     Signal,
     Slot,
 )
 from PySide6.QtGui import QImage
 from PySide6.QtWidgets import QFileDialog
 
-from database.history import save_history
-from ai.pipeline import AIEngine
-from ui.qt_utils import to_qimage
-from ui.speech_worker import SpeakTask
-from utils.helper import draw_vietnamese_text
+from ui.services.dialog_service import DialogService
+from ui.ui_logger import get_ui_logger, log_button_click
+from ui.viewmodels.image_viewmodel import ImageViewModel
+from ui.workers.speech_worker import SpeakTask
+from ui.workers.task_pool import submit
 
 
-class ImageDetectThread(QThread):
-    image_ready = Signal(QImage)
-    analysis_ready = Signal(object)
-    failed = Signal(str)
+logger = get_ui_logger("image_controller")
 
-    def __init__(
-        self,
-        ai_engine: AIEngine,
-        image_path: str,
-        user_id: int | None = None,
-        parent=None,
-    ) -> None:
-        super().__init__(parent)
-        self.ai_engine = ai_engine
-        self.image_path = image_path
-        self.user_id = user_id
+FILE_DIALOG_TITLE = "Chọn ảnh"
+FILE_DIALOG_FILTER = "Ảnh (*.jpg *.jpeg *.png *.bmp)"
 
-    def run(self) -> None:
-        try:
-            image = cv2.imread(self.image_path)
 
-            if image is None:
-                self.failed.emit(
-                    "Không đọc được ảnh."
-                )
-                return
+def open_image_file_dialog() -> str:
+    """Mo hop thoai chon file. Day la viec cua View, khong phai ViewModel."""
+    image_path, _ = QFileDialog.getOpenFileName(
+        None,
+        FILE_DIALOG_TITLE,
+        "",
+        FILE_DIALOG_FILTER,
+    )
 
-            analysis = self.ai_engine.analyze_frame(image)
-
-            if not analysis.success:
-                self.failed.emit(analysis.message)
-                return
-
-            for result in analysis.detections:
-                x1, y1, x2, y2 = result.box
-                label = (
-                    f"{result.english} - {result.vietnamese} "
-                    f"[{result.category}] "
-                    f"({result.confidence:.2f})"
-                )
-                save_history(
-                    result.english,
-                    result.vietnamese,
-                    result.category,
-                    result.confidence,
-                    user_id=self.user_id,
-                )
-                cv2.rectangle(
-                    image,
-                    (x1, y1),
-                    (x2, y2),
-                    (0, 255, 0),
-                    2,
-                )
-                image = draw_vietnamese_text(
-                    image,
-                    label,
-                    (x1, max(y1 - 35, 5)),
-                    color=(0, 255, 0),
-                    size=28,
-                )
-
-            self.image_ready.emit(
-                to_qimage(image)
-            )
-            self.analysis_ready.emit(analysis)
-
-        except Exception as error:
-            self.failed.emit(str(error))
+    return image_path
 
 
 class ImageController(QObject):
+    """Adapter giua QML va `ImageViewModel`."""
+
     imageChanged = Signal(QImage)
     resultsChanged = Signal(list)
     relatedWordsChanged = Signal(list)
@@ -99,204 +63,171 @@ class ImageController(QObject):
     busyChanged = Signal(bool)
     selectedImagePathChanged = Signal(str)
     detectionFinished = Signal()
+    progressChanged = Signal(int)
 
     def __init__(
         self,
-        ai_engine: AIEngine,
+        view_model: ImageViewModel,
+        dialog_service: DialogService | None = None,
+        file_picker=open_image_file_dialog,
         parent=None,
     ) -> None:
         super().__init__(parent)
-        self.ai_engine = ai_engine
-        self._busy = False
-        self._thread = None
-        self._user_id = None
-        self._selected_image_path = ""
-        self._results = []
-        self._related_words = []
-        self._cluster_words = []
-        self._status_message = ""
+
+        self._view_model = view_model
+        self._dialog_service = dialog_service
+        self._file_picker = file_picker
+
+        self._connect_view_model()
+
+    # ------------------------------------------------------------------
+    # Signal mapping: ViewModel (chuan hoa) -> Controller (legacy cho QML)
+    # ------------------------------------------------------------------
+
+    def _connect_view_model(self) -> None:
+        self._view_model.PreviewUpdated.connect(
+            self.imageChanged
+        )
+        self._view_model.DetectionCompleted.connect(
+            self.resultsChanged
+        )
+        self._view_model.RelatedWordsUpdated.connect(
+            self.relatedWordsChanged
+        )
+        self._view_model.ClusterWordsUpdated.connect(
+            self.clusterWordsChanged
+        )
+        self._view_model.StatusMessageChanged.connect(
+            self._on_status_changed
+        )
+        self._view_model.BusyChanged.connect(
+            self.busyChanged
+        )
+        self._view_model.SelectedImageChanged.connect(
+            self.selectedImagePathChanged
+        )
+        self._view_model.DetectionFinished.connect(
+            self.detectionFinished
+        )
+        self._view_model.ProgressChanged.connect(
+            self._on_progress_changed
+        )
+        self._view_model.ErrorRaised.connect(
+            self._on_error
+        )
+
+    def _on_status_changed(
+        self,
+        message: str,
+    ) -> None:
+        self.statusChanged.emit(message)
+
+        if self._dialog_service is not None:
+            self._dialog_service.publish(message)
+
+    def _on_progress_changed(
+        self,
+        percent: int,
+    ) -> None:
+        self.progressChanged.emit(percent)
+
+        if self._dialog_service is not None:
+            self._dialog_service.updateProgress(percent)
+
+    def _on_error(
+        self,
+        message: str,
+    ) -> None:
+        if self._dialog_service is not None:
+            self._dialog_service.showError(message)
+
+    # ------------------------------------------------------------------
+    # Property doc tu ViewModel
+    # ------------------------------------------------------------------
+
+    @property
+    def view_model(self) -> ImageViewModel:
+        return self._view_model
+
+    @Property(bool, notify=busyChanged)
+    def busy(self) -> bool:
+        return self._view_model.busy
+
+    @Property(str, notify=selectedImagePathChanged)
+    def selectedImagePath(self) -> str:
+        return self._view_model.selectedImagePath
+
+    @Property(str, notify=selectedImagePathChanged)
+    def displayImageSource(self) -> str:
+        return self._view_model.selectedImagePath
+
+    @Property(str, notify=selectedImagePathChanged)
+    def annotatedImageSource(self) -> str:
+        return self._view_model.selectedImagePath
+
+    @Property(list, notify=resultsChanged)
+    def detections(self) -> list:
+        return self._view_model.detections
+
+    @Property(list, notify=relatedWordsChanged)
+    def relatedWords(self) -> list:
+        return self._view_model.relatedWords
+
+    @Property(list, notify=clusterWordsChanged)
+    def clusterWords(self) -> list:
+        return self._view_model.clusterWords
+
+    @Property(str, notify=statusChanged)
+    def statusMessage(self) -> str:
+        return self._view_model.statusMessage
+
+    @Property(int, notify=progressChanged)
+    def progress(self) -> int:
+        return self._view_model.progress
+
+    # ------------------------------------------------------------------
+    # Slot goi tu QML
+    # ------------------------------------------------------------------
 
     def set_user_id(
         self,
         user_id: int | None,
     ) -> None:
-        self._user_id = user_id
-
-    @Property(bool, notify=busyChanged)
-    def busy(self) -> bool:
-        return self._busy
-
-    @Property(str, notify=selectedImagePathChanged)
-    def selectedImagePath(self) -> str:
-        return self._selected_image_path
-
-    @Property(str, notify=selectedImagePathChanged)
-    def displayImageSource(self) -> str:
-        return self._selected_image_path
-
-    @Property(str, notify=selectedImagePathChanged)
-    def annotatedImageSource(self) -> str:
-        return self._selected_image_path
-
-    @Property(list, notify=resultsChanged)
-    def detections(self) -> list:
-        return self._results
-
-    @Property(list, notify=relatedWordsChanged)
-    def relatedWords(self) -> list:
-        return self._related_words
-
-    @Property(list, notify=clusterWordsChanged)
-    def clusterWords(self) -> list:
-        return self._cluster_words
-
-    @Property(str, notify=statusChanged)
-    def statusMessage(self) -> str:
-        return self._status_message
-
-    def _set_status(
-        self,
-        message: str,
-    ) -> None:
-        self._status_message = message
-        self.statusChanged.emit(message)
-
-    def _set_busy(
-        self,
-        value: bool,
-    ) -> None:
-        if self._busy == value:
-            return
-        self._busy = value
-        self.busyChanged.emit(value)
-
-    def _clear_results(self) -> None:
-        self._results = []
-        self._related_words = []
-        self._cluster_words = []
-        self.resultsChanged.emit([])
-        self.relatedWordsChanged.emit([])
-        self.clusterWordsChanged.emit([])
+        self._view_model.set_user_id(user_id)
 
     @Slot()
     def chooseImage(self) -> None:
-        if self._busy:
+        log_button_click(logger, "choose_image")
+
+        if self._view_model.busy:
             return
 
-        image_path, _ = QFileDialog.getOpenFileName(
-            None,
-            "Chọn ảnh",
-            "",
-            "Ảnh (*.jpg *.jpeg *.png *.bmp)",
-        )
+        image_path = self._file_picker()
 
         if not image_path:
             return
 
-        image = cv2.imread(image_path)
-
-        if image is None:
-            self._set_status(
-                "Không đọc được ảnh."
-            )
-            return
-
-        self._selected_image_path = image_path
-        self.selectedImagePathChanged.emit(image_path)
-        self._clear_results()
-        self.imageChanged.emit(
-            to_qimage(image)
-        )
-        self._set_status(
-            "Đã chọn ảnh. Bấm Nhận diện để chạy YOLO."
-        )
+        self._view_model.selectImage(image_path)
 
     @Slot()
     def detectSelectedImage(self) -> None:
-        if self._busy:
-            return
+        log_button_click(logger, "detect_selected_image")
 
-        if not self._selected_image_path:
-            self._set_status(
-                "Vui lòng chọn ảnh trước."
-            )
-            return
+        self._view_model.detectSelectedImage()
 
-        self._set_busy(True)
-        self._set_status(
-            "Đang nhận diện..."
-        )
+    @Slot()
+    def cancelDetection(self) -> None:
+        log_button_click(logger, "cancel_detection")
 
-        self._thread = ImageDetectThread(
-            self.ai_engine,
-            self._selected_image_path,
-            self._user_id,
-        )
-        self._thread.image_ready.connect(
-            self._on_image_ready
-        )
-        self._thread.analysis_ready.connect(
-            self._on_analysis_ready
-        )
-        self._thread.failed.connect(
-            self._on_failed
-        )
-        self._thread.finished.connect(
-            self._on_finished
-        )
-        self._thread.start()
-
-    def _on_image_ready(
-        self,
-        image: QImage,
-    ) -> None:
-        self.imageChanged.emit(image)
-
-    def _on_analysis_ready(
-        self,
-        analysis: object,
-    ) -> None:
-        formatted_results = analysis.detections_as_dicts(
-            include_box=False,
-        )
-        self._results = formatted_results
-        self.resultsChanged.emit(formatted_results)
-
-        self._related_words = analysis.related_words_as_dicts()
-        self._cluster_words = analysis.cluster_words_as_dicts()
-
-        self.relatedWordsChanged.emit(
-            self._related_words
-        )
-        self.clusterWordsChanged.emit(
-            self._cluster_words
-        )
-
-        if formatted_results:
-            self._set_status(
-                f"Phát hiện {len(formatted_results)} vật thể."
-            )
-        else:
-            self._set_status(
-                "Không phát hiện vật thể nào."
-            )
-
-    def _on_failed(
-        self,
-        message: str,
-    ) -> None:
-        self._set_status(message)
-
-    def _on_finished(self) -> None:
-        self._thread = None
-        self._set_busy(False)
-        self.detectionFinished.emit()
+        self._view_model.cancel()
 
     @Slot(str)
     def speak(
         self,
         word: str,
     ) -> None:
-        QThreadPool.globalInstance().start(
+        log_button_click(logger, "speak_word")
+
+        submit(
             SpeakTask(word)
         )

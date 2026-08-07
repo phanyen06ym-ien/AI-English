@@ -1,321 +1,37 @@
+"""Thin Controller cho man hinh webcam.
+
+Sau Sprint 3 file nay KHONG con:
+
+- vong lap doc frame, `cv2.VideoCapture`      -> `WebcamWorker`
+- nguong confidence + cooldown lich su        -> `HistoryRecordPolicy`
+- goi `save_history()`                        -> `HistoryService`
+- ve bounding box                             -> `AnnotationService`
+- goi `AIEngine`                              -> `DetectionService`
+
+Property / Signal / Slot public giu nguyen ten de QML khong phai sua.
+"""
+
 from __future__ import annotations
 
-import queue
-import threading
-from time import monotonic
-
-import cv2
 from PySide6.QtCore import (
-    QObject,
     Property,
-    QThread,
+    QObject,
     Signal,
     Slot,
 )
 from PySide6.QtGui import QImage
 
-from database.history import save_history
-from ai.pipeline import AIEngine
-from ui.qt_utils import to_qimage
-from utils.config import CAMERA_ID, CONFIDENCE
-from utils.helper import draw_vietnamese_text
-from utils import perf_monitor
+from ui.services.dialog_service import DialogService
+from ui.ui_logger import get_ui_logger, log_button_click
+from ui.viewmodels.webcam_viewmodel import WebcamViewModel
 
 
-INFERENCE_INTERVAL_SECONDS = 0.25
-HISTORY_COOLDOWN_SECONDS = 5.0
-
-
-class WebcamThread(QThread):
-    frame_ready = Signal(QImage)
-    results_ready = Signal(list)
-    related_ready = Signal(list)
-    cluster_ready = Signal(list)
-    status_changed = Signal(str)
-    history_saved = Signal()
-
-    def __init__(
-        self,
-        ai_engine: AIEngine,
-        camera_id: int,
-        user_id: int | None = None,
-        parent=None,
-    ) -> None:
-        super().__init__(parent)
-        self.ai_engine = ai_engine
-        self.camera_id = camera_id
-        self.user_id = user_id
-        self._running = False
-        self._last_inference_at = 0.0
-        self._last_saved_by_class = {}
-        self._last_primary_word = ""
-        self._related_cache = {}
-        self._cluster_cache = {}
-        self._last_results = []
-        self._history_queue = queue.Queue(maxsize=20)
-        self._history_stop_token = object()
-        self._history_worker = None
-
-    def _start_history_worker(self) -> None:
-        if self._history_worker is not None:
-            return
-
-        self._history_worker = threading.Thread(
-            target=self._history_worker_loop,
-            name="webcam-history-writer",
-            daemon=True,
-        )
-        self._history_worker.start()
-
-    def _stop_history_worker(self) -> None:
-        if self._history_worker is None:
-            return
-
-        try:
-            self._history_queue.put_nowait(
-                self._history_stop_token
-            )
-        except queue.Full:
-            pass
-
-        self._history_worker.join(timeout=1.0)
-        self._history_worker = None
-
-    def _history_worker_loop(self) -> None:
-        while True:
-            item = self._history_queue.get()
-
-            if item is self._history_stop_token:
-                return
-
-            (
-                class_name,
-                vietnamese,
-                category,
-                confidence,
-                user_id,
-            ) = item
-
-            with perf_monitor.timer("webcam_db_save_history_async"):
-                saved = save_history(
-                    class_name,
-                    vietnamese,
-                    category,
-                    confidence,
-                    user_id=user_id,
-                )
-
-            if saved:
-                perf_monitor.increment("history_saved")
-                self.history_saved.emit()
-
-    def _save_history_if_allowed(
-        self,
-        result: dict,
-        now: float,
-    ) -> None:
-        class_name = result["english"]
-        confidence = float(
-            result.get("confidence") or 0.0
-        )
-
-        if confidence < CONFIDENCE:
-            return
-
-        last_saved_at = (
-            self._last_saved_by_class.get(
-                class_name,
-                0.0,
-            )
-        )
-
-        if now - last_saved_at < HISTORY_COOLDOWN_SECONDS:
-            return
-
-        try:
-            self._history_queue.put_nowait(
-                (
-                    class_name,
-                    result.get("vietnamese"),
-                    result.get("category"),
-                    confidence,
-                    self.user_id,
-                )
-            )
-            self._last_saved_by_class[class_name] = now
-            perf_monitor.increment("history_save_queued")
-        except queue.Full:
-            perf_monitor.increment("history_save_dropped_queue_full")
-
-    def _emit_word_suggestions(
-        self,
-        primary_word: str,
-        analysis: object,
-    ) -> None:
-        if not primary_word:
-            self.related_ready.emit([])
-            self.cluster_ready.emit([])
-            self._last_primary_word = ""
-            return
-
-        if primary_word == self._last_primary_word:
-            return
-
-        self._last_primary_word = primary_word
-
-        self._related_cache[primary_word] = (
-            analysis.related_words_as_dicts()
-        )
-        self._cluster_cache[primary_word] = (
-            analysis.cluster_words_as_dicts()
-        )
-
-        perf_monitor.increment("related_emit")
-        self.related_ready.emit(
-            self._related_cache[primary_word]
-        )
-        perf_monitor.increment("cluster_emit")
-        self.cluster_ready.emit(
-            self._cluster_cache[primary_word]
-        )
-
-    def _draw_results(
-        self,
-        frame,
-        results: list[dict],
-    ):
-        with perf_monitor.timer("draw_bounding_boxes"):
-            for result in results:
-                x1, y1, x2, y2 = result["box"]
-                label = result["text"]
-
-                cv2.rectangle(
-                    frame,
-                    (x1, y1),
-                    (x2, y2),
-                    (0, 180, 0),
-                    2,
-                )
-
-                frame = draw_vietnamese_text(
-                    frame,
-                    label,
-                    (x1, max(y1 - 35, 5)),
-                    color=(0, 180, 0),
-                    size=24,
-                )
-
-        return frame
-
-    def run(self) -> None:
-        perf_monitor.start()
-        self._start_history_worker()
-        with perf_monitor.timer("camera_open_dshow"):
-            camera = cv2.VideoCapture(
-                self.camera_id,
-                cv2.CAP_DSHOW,
-            )
-
-        if not camera.isOpened():
-            camera.release()
-            with perf_monitor.timer("camera_open_default"):
-                camera = cv2.VideoCapture(
-                    self.camera_id
-                )
-
-        if not camera.isOpened():
-            self.status_changed.emit(
-                "Không mở được webcam."
-            )
-            return
-
-        self._running = True
-        self.status_changed.emit(
-            "Webcam đang hoạt động."
-        )
-
-        try:
-            while self._running:
-                with perf_monitor.timer("camera_read_frame"):
-                    success, frame = camera.read()
-
-                if not success:
-                    continue
-
-                perf_monitor.increment("camera_frames_read")
-                now = monotonic()
-
-                if (
-                    now - self._last_inference_at
-                    >= INFERENCE_INTERVAL_SECONDS
-                ):
-                    self._last_inference_at = now
-                    perf_monitor.increment("inference_attempt")
-                    analysis = self.ai_engine.analyze_frame(frame)
-
-                    if not analysis.success:
-                        perf_monitor.increment("status_emit")
-                        self.status_changed.emit(
-                            analysis.message
-                        )
-                        self._emit_word_suggestions(
-                            "",
-                            analysis,
-                        )
-                        continue
-
-                    results = analysis.detections_as_dicts()
-                    self._last_results = results
-                    perf_monitor.increment("results_emit")
-                    self.results_ready.emit(results)
-
-                    if results:
-                        for result in results:
-                            self._save_history_if_allowed(
-                                result,
-                                now,
-                            )
-                        perf_monitor.increment("status_emit")
-                        self.status_changed.emit(
-                            f"Phát hiện {len(results)} vật thể."
-                        )
-                        self._emit_word_suggestions(
-                            results[0]["english"],
-                            analysis,
-                        )
-                    else:
-                        perf_monitor.increment("status_emit")
-                        self.status_changed.emit(
-                            "Chưa phát hiện vật thể."
-                        )
-                        self._emit_word_suggestions(
-                            "",
-                            analysis,
-                        )
-
-                display_frame = self._draw_results(
-                    frame,
-                    self._last_results,
-                )
-                image = to_qimage(display_frame)
-                with perf_monitor.timer("frame_ready_emit"):
-                    self.frame_ready.emit(image)
-                perf_monitor.increment("frame_emit")
-                perf_monitor.maybe_report()
-
-        finally:
-            camera.release()
-            self._stop_history_worker()
-            self.status_changed.emit(
-                "Webcam đã tắt."
-            )
-
-    def stop(self) -> None:
-        self._running = False
-        self.wait(3000)
+logger = get_ui_logger("webcam_controller")
 
 
 class WebcamController(QObject):
+    """Adapter giua QML va `WebcamViewModel`."""
+
     frameChanged = Signal(QImage)
     statusChanged = Signal(str)
     runningChanged = Signal(bool)
@@ -326,107 +42,95 @@ class WebcamController(QObject):
 
     def __init__(
         self,
-        ai_engine: AIEngine,
+        view_model: WebcamViewModel,
+        dialog_service: DialogService | None = None,
         parent=None,
     ) -> None:
         super().__init__(parent)
-        self.ai_engine = ai_engine
-        self._thread = None
-        self._running = False
-        self._user_id = None
-        self._results = []
-        self._related_words = []
-        self._cluster_words = []
+
+        self._view_model = view_model
+        self._dialog_service = dialog_service
+
+        self._connect_view_model()
+
+    def _connect_view_model(self) -> None:
+        self._view_model.FrameUpdated.connect(
+            self.frameChanged
+        )
+        self._view_model.DetectionCompleted.connect(
+            self.resultsChanged
+        )
+        self._view_model.RelatedWordsUpdated.connect(
+            self.relatedWordsChanged
+        )
+        self._view_model.ClusterWordsUpdated.connect(
+            self.clusterWordsChanged
+        )
+        self._view_model.HistoryUpdated.connect(
+            self.historySaved
+        )
+        self._view_model.RunningChanged.connect(
+            self.runningChanged
+        )
+        self._view_model.StatusMessageChanged.connect(
+            self._on_status_changed
+        )
+
+    def _on_status_changed(
+        self,
+        message: str,
+    ) -> None:
+        self.statusChanged.emit(message)
+
+        if self._dialog_service is not None:
+            self._dialog_service.publish(message)
+
+    # ------------------------------------------------------------------
+    # Property
+    # ------------------------------------------------------------------
+
+    @property
+    def view_model(self) -> WebcamViewModel:
+        return self._view_model
 
     @Property(bool, notify=runningChanged)
     def running(self) -> bool:
-        return self._running
+        return self._view_model.running
 
     @Property(list, notify=resultsChanged)
     def detections(self) -> list:
-        return self._results
+        return self._view_model.detections
 
     @Property(list, notify=relatedWordsChanged)
     def relatedWords(self) -> list:
-        return self._related_words
+        return self._view_model.relatedWords
 
     @Property(list, notify=clusterWordsChanged)
     def clusterWords(self) -> list:
-        return self._cluster_words
+        return self._view_model.clusterWords
+
+    # ------------------------------------------------------------------
+    # Slot goi tu QML
+    # ------------------------------------------------------------------
 
     def set_user_id(
         self,
         user_id: int | None,
     ) -> None:
-        self._user_id = user_id
+        self._view_model.set_user_id(user_id)
 
     @Slot()
     def start(self) -> None:
-        if self._thread is not None:
-            return
+        log_button_click(logger, "webcam_start")
 
-        self._running = True
-        self.runningChanged.emit(True)
-
-        self._thread = WebcamThread(
-            self.ai_engine,
-            CAMERA_ID,
-            self._user_id,
-        )
-        self._thread.frame_ready.connect(
-            self.frameChanged
-        )
-        self._thread.results_ready.connect(
-            self._on_results_ready
-        )
-        self._thread.related_ready.connect(
-            self._on_related_ready
-        )
-        self._thread.cluster_ready.connect(
-            self._on_cluster_ready
-        )
-        self._thread.status_changed.connect(
-            self.statusChanged
-        )
-        self._thread.history_saved.connect(
-            self.historySaved
-        )
-        self._thread.finished.connect(
-            self._on_finished
-        )
-        self._thread.start()
+        self._view_model.start()
 
     @Slot()
     def stop(self) -> None:
-        if self._thread is not None:
-            self._thread.stop()
-        else:
-            self.statusChanged.emit(
-                "Webcam đã tắt."
-            )
+        log_button_click(logger, "webcam_stop")
 
-    def _on_results_ready(
-        self,
-        results: list,
-    ) -> None:
-        self._results = results
-        self.resultsChanged.emit(results)
+        self._view_model.stop()
 
-    def _on_related_ready(
-        self,
-        words: list,
-    ) -> None:
-        self._related_words = words
-        self.relatedWordsChanged.emit(words)
-
-    def _on_cluster_ready(
-        self,
-        words: list,
-    ) -> None:
-        self._cluster_words = words
-        self.clusterWordsChanged.emit(words)
-
-    def _on_finished(self) -> None:
-        self._thread = None
-        self._running = False
-        self.runningChanged.emit(False)
+    def shutdown(self) -> None:
+        """Dung webcam va cho worker ket thuc khi thoat ung dung."""
+        self._view_model.shutdown()

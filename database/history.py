@@ -1,9 +1,27 @@
+"""Compatibility shim cho tang lich su.
+
+Truy van SQL da chuyen sang `database.repositories.history_repository`.
+Module nay giu lai API cu (`save_history`, `get_history`, `clear_history`,
+`delete_history_by_user`) VA giu nguyen hanh vi cu:
+
+    loi database -> tra ve [] hoac False, khong nem exception.
+
+Code moi (`ui.services.history_service`) goi thang `HistoryRepository` de nhan
+duoc exception co nghia. Chi nhung script cu con dung module nay.
+"""
+
 from __future__ import annotations
 
+import logging
 from typing import Optional
 
-from database.db import database_cursor
-from utils import perf_monitor
+from database.exceptions import RepositoryError
+from database.repositories.history_repository import HistoryRepository
+
+
+logger = logging.getLogger(__name__)
+
+_repository = HistoryRepository()
 
 
 def save_history(
@@ -13,70 +31,32 @@ def save_history(
     confidence: float,
     user_id: Optional[int] = None,
 ) -> bool:
+    """Luu mot ket qua nhan dien.
+
+    Tra ve:
+    - True neu luu thanh cong.
+    - False neu database loi hoac `english_word` rong.
     """
-    Lưu một kết quả nhận dạng vào bảng history.
-
-    Trả về:
-    - True nếu lưu thành công.
-    - False nếu database lỗi.
-    """
-    normalized_english = english_word.strip()
-    normalized_vietnamese = (
-        vietnamese_meaning.strip()
-        if vietnamese_meaning
-        else ""
-    )
-    normalized_category = (
-        category.strip()
-        if category
-        else "Unknown"
-    )
-
-    if not normalized_english:
-        print(
-            "Không lưu lịch sử vì english_word trống."
-        )
-        return False
-
-    query = """
-        INSERT INTO history (
-            user_id,
+    try:
+        saved = _repository.add(
             english_word,
             vietnamese_meaning,
             category,
             confidence,
-            detected_time
+            user_id=user_id,
         )
-        VALUES (
-            %s,
-            %s,
-            %s,
-            %s,
-            %s,
-            CURRENT_TIMESTAMP
-        );
-    """
 
-    try:
-        with database_cursor(commit=True) as cursor:
-            with perf_monitor.timer("db_insert_history_execute"):
-                cursor.execute(
-                    query,
-                    (
-                        user_id,
-                        normalized_english,
-                        normalized_vietnamese,
-                        normalized_category,
-                        float(confidence),
-                    ),
-                )
+        if not saved:
+            logger.warning(
+                "Khong luu lich su vi english_word trong."
+            )
 
-        return True
+        return saved
 
-    except Exception as error:
-        print(
-            "Không lưu được lịch sử nhận dạng: "
-            f"{error}"
+    except RepositoryError as error:
+        logger.error(
+            "Khong luu duoc lich su nhan dien: %s",
+            error,
         )
         return False
 
@@ -85,132 +65,60 @@ def get_history(
     user_id: Optional[int] = None,
     limit: int = 100,
 ) -> list[dict]:
+    """Lay lich su nhan dien.
+
+    Nếu truyền user_id: chỉ lấy lịch sử của người dùng đó.
+    Nếu user_id là None: lấy toàn bộ lịch sử.
     """
-    Lấy lịch sử nhận dạng.
-
-    Nếu truyền user_id:
-        chỉ lấy lịch sử của người dùng đó.
-
-    Nếu user_id là None:
-        lấy toàn bộ lịch sử.
-    """
-    safe_limit = max(1, min(limit, 500))
-
-    if user_id is None:
-        query = """
-            SELECT
-                id,
-                user_id,
-                english_word,
-                vietnamese_meaning,
-                category,
-                confidence,
-                detected_time
-            FROM history
-            ORDER BY detected_time DESC
-            LIMIT %s;
-        """
-
-        parameters = (safe_limit,)
-
-    else:
-        query = """
-            SELECT
-                id,
-                user_id,
-                english_word,
-                vietnamese_meaning,
-                category,
-                confidence,
-                detected_time
-            FROM history
-            WHERE user_id = %s
-            ORDER BY detected_time DESC
-            LIMIT %s;
-        """
-
-        parameters = (
-            user_id,
-            safe_limit,
+    try:
+        entries = _repository.list_by_user(
+            user_id=user_id,
+            limit=limit,
         )
 
-    try:
-        with database_cursor() as cursor:
-            with perf_monitor.timer("db_select_history_execute"):
-                cursor.execute(
-                    query,
-                    parameters,
-                )
-
-            with perf_monitor.timer("db_select_history_fetch"):
-                rows = cursor.fetchall()
-
-    except Exception as error:
-        print(
-            "Không thể đọc lịch sử nhận dạng: "
-            f"{error}"
+    except RepositoryError as error:
+        logger.error(
+            "Khong the doc lich su nhan dien: %s",
+            error,
         )
         return []
 
     return [
-        {
-            "id": row[0],
-            "user_id": row[1],
-            "english_word": row[2],
-            "vietnamese_meaning": row[3],
-            "category": row[4],
-            "confidence": float(row[5] or 0.0),
-            "detected_time": row[6],
-        }
-        for row in rows
+        entry.to_dict()
+        for entry in entries
     ]
 
 
 def delete_history_by_user(
     user_id: int,
 ) -> bool:
-    """
-    Xóa toàn bộ lịch sử của một người dùng.
-    """
+    """Xoa toan bo lich su cua mot nguoi dung."""
     return clear_history(user_id)
 
 
 def clear_history(
     user_id: int | None = None,
 ) -> bool:
+    """Xoa lich su nhan dien.
+
+    Nếu user_id là None: xóa toàn bộ lịch sử.
+    Nếu có user_id: chỉ xóa lịch sử của người dùng đó.
     """
-    Xóa lịch sử nhận dạng.
-
-    Nếu user_id là None:
-        xóa toàn bộ lịch sử.
-
-    Nếu có user_id:
-        chỉ xóa lịch sử của người dùng đó.
-    """
-    if user_id is None:
-        query = "DELETE FROM history;"
-        parameters = ()
-
-    else:
-        query = """
-            DELETE FROM history
-            WHERE user_id = %s;
-        """
-        parameters = (user_id,)
-
     try:
-        with database_cursor(
-            commit=True
-        ) as cursor:
-            cursor.execute(
-                query,
-                parameters,
-            )
-
+        _repository.delete_by_user(user_id)
         return True
 
-    except Exception as error:
-        print(
-            f"Không thể xóa lịch sử: {error}"
+    except RepositoryError as error:
+        logger.error(
+            "Khong the xoa lich su: %s",
+            error,
         )
         return False
+
+
+__all__ = [
+    "save_history",
+    "get_history",
+    "clear_history",
+    "delete_history_by_user",
+]

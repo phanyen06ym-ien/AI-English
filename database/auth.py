@@ -1,104 +1,74 @@
+"""Compatibility shim cho tang xac thuc.
+
+Sprint 4 tach 3 trach nhiem tung bi tron trong file nay:
+
+| Trach nhiem | Truoc Sprint 4 | Sau Sprint 4 |
+|---|---|---|
+| Cau SQL | `database/auth.py` | `database.repositories.user_repository` |
+| Bam / kiem tra mat khau | `database/auth.py` | `utils.password` |
+| Luat nghiep vu (validate, nang cap hash) | `database/auth.py` | `ui.services.auth_service` |
+
+Module nay chi con la lop tuong thich cho script cu. API va hanh vi giu nguyen,
+ke ca viec tu dong nang cap mat khau dang tho len bcrypt khi dang nhap thanh cong.
+
+Code moi goi thang `UserRepository` + `AuthService`.
+"""
+
 from __future__ import annotations
 
 from typing import Optional
 
-from database.db import database_cursor
+from database.entities import User
+from database.exceptions import NotFoundError
+from database.repositories.user_repository import UserRepository
+from utils.password import (
+    hash_password,
+    is_bcrypt_hash,
+    needs_rehash,
+    verify_password,
+)
 
 
-def _load_bcrypt():
-    try:
-        import bcrypt
-
-        return bcrypt
-
-    except ImportError as error:
-        raise RuntimeError(
-            "bcrypt is required for authentication. "
-            "Install dependencies with: pip install -r requirements.txt"
-        ) from error
+_repository = UserRepository()
 
 
-def _hash_password(password: str) -> str:
-    bcrypt = _load_bcrypt()
-    return bcrypt.hashpw(
-        password.encode("utf-8"),
-        bcrypt.gensalt(),
-    ).decode("utf-8")
+# ----------------------------------------------------------------------
+# Giu lai ten private cu de script cu import duoc
+# ----------------------------------------------------------------------
+
+_hash_password = hash_password
+_is_bcrypt_hash = is_bcrypt_hash
+_verify_password = verify_password
 
 
-def _is_bcrypt_hash(value: str) -> bool:
-    return (
-        value.startswith("$2a$")
-        or value.startswith("$2b$")
-        or value.startswith("$2y$")
-    )
+def _user_to_legacy_dict(
+    user: User,
+    include_password: bool = True,
+) -> dict:
+    data = user.to_public_dict()
 
+    if include_password:
+        data["password"] = user.password_hash
 
-def _verify_password(
-    password: str,
-    stored_password: str,
-) -> bool:
-    if not stored_password:
-        return False
-
-    if _is_bcrypt_hash(stored_password):
-        bcrypt = _load_bcrypt()
-        return bcrypt.checkpw(
-            password.encode("utf-8"),
-            stored_password.encode("utf-8"),
-        )
-
-    return password == stored_password
+    return data
 
 
 def find_user_by_username(
     username: str,
 ) -> Optional[dict]:
-    normalized_username = username.strip()
+    """Tim nguoi dung theo ten dang nhap."""
+    user = _repository.find_by_username(username)
 
-    if not normalized_username:
+    if user is None:
         return None
 
-    query = """
-        SELECT
-            id,
-            username,
-            fullname,
-            password
-        FROM users
-        WHERE username = %s
-        LIMIT 1;
-    """
-
-    try:
-        with database_cursor() as cursor:
-            cursor.execute(
-                query,
-                (normalized_username,),
-            )
-            row = cursor.fetchone()
-
-    except Exception as error:
-        print(
-            f"Database error while finding user: {error}"
-        )
-        raise
-
-    if row is None:
-        return None
-
-    return {
-        "id": row[0],
-        "username": row[1],
-        "fullname": row[2],
-        "password": row[3],
-    }
+    return _user_to_legacy_dict(user)
 
 
 def username_exists(
     username: str,
 ) -> bool:
-    return find_user_by_username(username) is not None
+    return _repository.exists(username)
 
 
 def create_user(
@@ -106,82 +76,52 @@ def create_user(
     username: str,
     password_hash: str,
 ) -> dict:
-    query = """
-        INSERT INTO users (
-            fullname,
-            username,
-            password
-        )
-        VALUES (%s, %s, %s)
-        RETURNING id, username, fullname;
-    """
+    user = _repository.create(
+        fullname,
+        username,
+        password_hash,
+    )
 
-    with database_cursor(commit=True) as cursor:
-        cursor.execute(
-            query,
-            (
-                fullname.strip(),
-                username.strip(),
-                password_hash,
-            ),
-        )
-        row = cursor.fetchone()
-
-    return {
-        "id": row[0],
-        "username": row[1],
-        "fullname": row[2],
-    }
+    return user.to_public_dict()
 
 
 def _update_password_hash(
     user_id: int,
     password_hash: str,
 ) -> None:
-    query = """
-        UPDATE users
-        SET password = %s
-        WHERE id = %s;
-    """
-
-    with database_cursor(commit=True) as cursor:
-        cursor.execute(
-            query,
-            (
-                password_hash,
-                user_id,
-            ),
-        )
+    _repository.update_password_hash(
+        user_id,
+        password_hash,
+    )
 
 
 def verify_login(
     username: str,
     password: str,
 ) -> Optional[dict]:
-    user = find_user_by_username(username)
+    """Kiem tra dang nhap.
+
+    Giu nguyen hanh vi cu: neu mat khau dang luu chua duoc bam, tu dong nang cap
+    len bcrypt sau khi dang nhap thanh cong.
+    """
+    user = _repository.find_by_username(username)
 
     if user is None:
         return None
 
-    stored_password = user.get("password") or ""
-
-    if not _verify_password(
+    if not verify_password(
         password,
-        stored_password,
+        user.password_hash,
     ):
         return None
 
-    if not _is_bcrypt_hash(stored_password):
-        _update_password_hash(
-            int(user["id"]),
-            _hash_password(password),
+    if needs_rehash(user.password_hash):
+        _repository.update_password_hash(
+            user.id,
+            hash_password(password),
         )
 
-    return {
-        "id": user["id"],
-        "username": user["username"],
-        "fullname": user["fullname"],
-    }
+    return user.to_public_dict()
 
 
 def register_user(
@@ -192,7 +132,7 @@ def register_user(
     return create_user(
         fullname,
         username,
-        _hash_password(password),
+        hash_password(password),
     )
 
 
@@ -201,41 +141,30 @@ def change_password(
     old_password: str,
     new_password: str,
 ) -> bool:
-    query = """
-        SELECT password
-        FROM users
-        WHERE id = %s
-        LIMIT 1;
-    """
+    """Doi mat khau. False neu mat khau cu sai hoac trung mat khau moi."""
+    try:
+        stored_password = _repository.get_password_hash(user_id)
 
-    with database_cursor() as cursor:
-        cursor.execute(
-            query,
-            (user_id,),
-        )
-        row = cursor.fetchone()
-
-    if row is None:
+    except NotFoundError:
         return False
 
-    stored_password = row[0] or ""
-
-    if not _verify_password(
+    if not verify_password(
         old_password,
         stored_password,
     ):
         return False
 
-    if _verify_password(
+    if verify_password(
         new_password,
         stored_password,
     ):
         return False
 
-    _update_password_hash(
+    _repository.update_password_hash(
         user_id,
-        _hash_password(new_password),
+        hash_password(new_password),
     )
+
     return True
 
 
@@ -247,3 +176,14 @@ def login_user(
         username,
         password,
     )
+
+
+__all__ = [
+    "find_user_by_username",
+    "username_exists",
+    "create_user",
+    "verify_login",
+    "register_user",
+    "change_password",
+    "login_user",
+]

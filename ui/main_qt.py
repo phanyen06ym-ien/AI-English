@@ -34,14 +34,8 @@ from PySide6.QtQml import (
 )
 from PySide6.QtWidgets import QApplication
 
-from ai.pipeline import AIEngine
-from ui.auth_controller import AuthController
-from ui.history_controller import HistoryController
-from ui.image_controller import ImageController
-from ui.stats_controller import StatsController
+from ui.app_context import AppContext
 from ui.video_item import VideoItem
-from ui.vocabulary_controller import VocabularyController
-from ui.webcam_controller import WebcamController
 
 
 QML_DIR = (
@@ -72,99 +66,27 @@ def run() -> None:
     )
 
     try:
-        ai_engine = AIEngine.create_default()
+        context = AppContext.build()
 
     except Exception as error:
         logging.getLogger(__name__).exception(
-            "Khong the tai AIEngine: %s",
+            "Khong the khoi tao AppContext: %s",
             error,
         )
         raise
 
-    vocabulary_controller = (
-        VocabularyController(ai_engine)
-    )
-
-    image_controller = (
-        ImageController(ai_engine)
-    )
-
-    webcam_controller = (
-        WebcamController(ai_engine)
-    )
-
-    history_controller = (
-        HistoryController()
-    )
-
-    stats_controller = (
-        StatsController()
-    )
-
-    auth_controller = (
-        AuthController()
-    )
-
-    def apply_current_user(
-        user: dict,
-    ) -> None:
-        user_id = (
-            int(user.get("id"))
-            if user and user.get("id")
-            else None
-        )
-        image_controller.set_user_id(user_id)
-        webcam_controller.set_user_id(user_id)
-        history_controller.set_user_id(user_id)
-        stats_controller.set_user_id(user_id)
-
-        if user_id is not None:
-            history_controller.refresh()
-            stats_controller.refresh()
-        else:
-            webcam_controller.stop()
-            stats_controller.clear()
-
-    auth_controller.userChanged.connect(
-        apply_current_user
-    )
-
     engine = QQmlApplicationEngine()
 
-    context = engine.rootContext()
+    qml_context = engine.rootContext()
 
-    context.setContextProperty(
-        "vocabController",
-        vocabulary_controller,
-    )
-
-    context.setContextProperty(
-        "imageController",
-        image_controller,
-    )
-
-    context.setContextProperty(
-        "webcamController",
-        webcam_controller,
-    )
-
-    context.setContextProperty(
-        "historyController",
-        history_controller,
-    )
-
-    context.setContextProperty(
-        "statsController",
-        stats_controller,
-    )
-
-    context.setContextProperty(
-        "authController",
-        auth_controller,
-    )
+    for name, obj in context.context_properties().items():
+        qml_context.setContextProperty(
+            name,
+            obj,
+        )
 
     app.aboutToQuit.connect(
-        webcam_controller.stop
+        context.shutdown
     )
 
     engine.load(
