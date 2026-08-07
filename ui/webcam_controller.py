@@ -15,9 +15,7 @@ from PySide6.QtCore import (
 from PySide6.QtGui import QImage
 
 from database.history import save_history
-from detection.classify import classify_word
-from ml.kmeans import get_words_in_same_cluster
-from ml.knn import get_related_words
+from ai.pipeline import AIEngine
 from ui.qt_utils import to_qimage
 from utils.config import CAMERA_ID, CONFIDENCE
 from utils.helper import draw_vietnamese_text
@@ -38,13 +36,13 @@ class WebcamThread(QThread):
 
     def __init__(
         self,
-        detector,
+        ai_engine: AIEngine,
         camera_id: int,
         user_id: int | None = None,
         parent=None,
     ) -> None:
         super().__init__(parent)
-        self.detector = detector
+        self.ai_engine = ai_engine
         self.camera_id = camera_id
         self.user_id = user_id
         self._running = False
@@ -111,44 +109,6 @@ class WebcamThread(QThread):
                 perf_monitor.increment("history_saved")
                 self.history_saved.emit()
 
-    def _format_detection(
-        self,
-        detected_object: dict,
-    ) -> dict:
-        class_name = detected_object["class_name"]
-        word_info = classify_word(class_name)
-        confidence = float(
-            detected_object["confidence"]
-        )
-        box = tuple(detected_object["box"])
-
-        vietnamese = (
-            word_info.get("vietnamese")
-            or class_name
-        )
-        category = (
-            word_info.get("category")
-            or "Unknown"
-        )
-        level = (
-            word_info.get("level")
-            or "Unknown"
-        )
-
-        return {
-            "english": class_name,
-            "vietnamese": vietnamese,
-            "category": category,
-            "level": level,
-            "confidence": confidence,
-            "box": box,
-            "text": (
-                f"{class_name} - {vietnamese} "
-                f"[{category} - {level}] "
-                f"({confidence:.2f})"
-            ),
-        }
-
     def _save_history_if_allowed(
         self,
         result: dict,
@@ -190,6 +150,7 @@ class WebcamThread(QThread):
     def _emit_word_suggestions(
         self,
         primary_word: str,
+        analysis: object,
     ) -> None:
         if not primary_word:
             self.related_ready.emit([])
@@ -202,22 +163,12 @@ class WebcamThread(QThread):
 
         self._last_primary_word = primary_word
 
-        if primary_word not in self._related_cache:
-            with perf_monitor.timer("knn_related_words"):
-                self._related_cache[primary_word] = (
-                    get_related_words(
-                        primary_word,
-                        n=3,
-                    )
-                )
-
-        if primary_word not in self._cluster_cache:
-            with perf_monitor.timer("kmeans_cluster_words"):
-                self._cluster_cache[primary_word] = (
-                    get_words_in_same_cluster(
-                        primary_word
-                    )
-                )
+        self._related_cache[primary_word] = (
+            analysis.related_words_as_dicts()
+        )
+        self._cluster_cache[primary_word] = (
+            analysis.cluster_words_as_dicts()
+        )
 
         perf_monitor.increment("related_emit")
         self.related_ready.emit(
@@ -300,18 +251,20 @@ class WebcamThread(QThread):
                 ):
                     self._last_inference_at = now
                     perf_monitor.increment("inference_attempt")
-                    detected_objects = self.detector.detect(
-                        frame
-                    )
+                    analysis = self.ai_engine.analyze_frame(frame)
 
-                    results = [
-                        self._format_detection(obj)
-                        for obj in detected_objects
-                    ]
-                    results.sort(
-                        key=lambda item: item["confidence"],
-                        reverse=True,
-                    )
+                    if not analysis.success:
+                        perf_monitor.increment("status_emit")
+                        self.status_changed.emit(
+                            analysis.message
+                        )
+                        self._emit_word_suggestions(
+                            "",
+                            analysis,
+                        )
+                        continue
+
+                    results = analysis.detections_as_dicts()
                     self._last_results = results
                     perf_monitor.increment("results_emit")
                     self.results_ready.emit(results)
@@ -327,14 +280,18 @@ class WebcamThread(QThread):
                             f"Phát hiện {len(results)} vật thể."
                         )
                         self._emit_word_suggestions(
-                            results[0]["english"]
+                            results[0]["english"],
+                            analysis,
                         )
                     else:
                         perf_monitor.increment("status_emit")
                         self.status_changed.emit(
                             "Chưa phát hiện vật thể."
                         )
-                        self._emit_word_suggestions("")
+                        self._emit_word_suggestions(
+                            "",
+                            analysis,
+                        )
 
                 display_frame = self._draw_results(
                     frame,
@@ -369,11 +326,11 @@ class WebcamController(QObject):
 
     def __init__(
         self,
-        detector,
+        ai_engine: AIEngine,
         parent=None,
     ) -> None:
         super().__init__(parent)
-        self.detector = detector
+        self.ai_engine = ai_engine
         self._thread = None
         self._running = False
         self._user_id = None
@@ -412,7 +369,7 @@ class WebcamController(QObject):
         self.runningChanged.emit(True)
 
         self._thread = WebcamThread(
-            self.detector,
+            self.ai_engine,
             CAMERA_ID,
             self._user_id,
         )

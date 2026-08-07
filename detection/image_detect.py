@@ -1,42 +1,67 @@
 import cv2
+import logging
 
+from ai.pipeline import AIEngine
 from database.history import save_history
-from detection.classify import classify_word
-from detection.detector import ObjectDetector
 from utils.helper import draw_vietnamese_text
+
+
+logger = logging.getLogger(__name__)
 
 
 def detect_image(
     image_path,
     detector=None,
+    ai_engine=None,
     show_window=True,
     user_id=None,
 ):
-    """Nhận dạng vật thể trong ảnh và trả về ảnh đã vẽ nhãn cùng kết quả."""
-    detector = detector or ObjectDetector()
+    """Detect objects in an image and return the annotated image and results."""
+    if ai_engine is None:
+        if detector is None:
+            ai_engine = AIEngine.create_default()
+        else:
+            ai_engine = AIEngine.from_detector(detector)
+
     image = cv2.imread(image_path)
 
     if image is None:
-        print("Không đọc được ảnh:", image_path)
+        logger.error("Khong doc duoc anh: %s", image_path)
         return None, []
 
-    objects = detector.detect(image)
+    analysis = ai_engine.analyze_frame(
+        image,
+        include_learning=False,
+    )
+
+    if not analysis.success:
+        return image, []
+
     results = []
 
-    for obj in objects:
-        class_name = obj["class_name"]
-        info = classify_word(class_name)
-        vietnamese = info["vietnamese"] or class_name
-        confidence = obj["confidence"]
-        x1, y1, x2, y2 = obj["box"]
+    for result in analysis.detections:
+        x1, y1, x2, y2 = result.box
+        label = (
+            f"{result.english} - {result.vietnamese} "
+            f"[{result.category}] ({result.confidence:.2f})"
+        )
 
-        label = f"{class_name} - {vietnamese} [{info['category']}] ({confidence:.2f})"
-        results.append({**info, "confidence": confidence, "box": obj["box"]})
+        results.append(
+            {
+                "english": result.english,
+                "vietnamese": result.vietnamese,
+                "category": result.category,
+                "level": result.level,
+                "source": result.source,
+                "confidence": result.confidence,
+                "box": result.box,
+            }
+        )
         save_history(
-            class_name,
-            vietnamese,
-            info["category"],
-            confidence,
+            result.english,
+            result.vietnamese,
+            result.category,
+            result.confidence,
             user_id=user_id,
         )
         cv2.rectangle(image, (x1, y1), (x2, y2), (0, 255, 0), 2)

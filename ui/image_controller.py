@@ -12,38 +12,33 @@ from PySide6.QtCore import (
 from PySide6.QtGui import QImage
 from PySide6.QtWidgets import QFileDialog
 
-from detection.image_detect import detect_image
-from ml.kmeans import get_words_in_same_cluster
-from ml.knn import get_related_words
+from database.history import save_history
+from ai.pipeline import AIEngine
 from ui.qt_utils import to_qimage
 from ui.speech_worker import SpeakTask
+from utils.helper import draw_vietnamese_text
 
 
 class ImageDetectThread(QThread):
     image_ready = Signal(QImage)
-    results_ready = Signal(list)
+    analysis_ready = Signal(object)
     failed = Signal(str)
 
     def __init__(
         self,
-        detector,
+        ai_engine: AIEngine,
         image_path: str,
         user_id: int | None = None,
         parent=None,
     ) -> None:
         super().__init__(parent)
-        self.detector = detector
+        self.ai_engine = ai_engine
         self.image_path = image_path
         self.user_id = user_id
 
     def run(self) -> None:
         try:
-            image, results = detect_image(
-                self.image_path,
-                detector=self.detector,
-                show_window=False,
-                user_id=self.user_id,
-            )
+            image = cv2.imread(self.image_path)
 
             if image is None:
                 self.failed.emit(
@@ -51,10 +46,45 @@ class ImageDetectThread(QThread):
                 )
                 return
 
+            analysis = self.ai_engine.analyze_frame(image)
+
+            if not analysis.success:
+                self.failed.emit(analysis.message)
+                return
+
+            for result in analysis.detections:
+                x1, y1, x2, y2 = result.box
+                label = (
+                    f"{result.english} - {result.vietnamese} "
+                    f"[{result.category}] "
+                    f"({result.confidence:.2f})"
+                )
+                save_history(
+                    result.english,
+                    result.vietnamese,
+                    result.category,
+                    result.confidence,
+                    user_id=self.user_id,
+                )
+                cv2.rectangle(
+                    image,
+                    (x1, y1),
+                    (x2, y2),
+                    (0, 255, 0),
+                    2,
+                )
+                image = draw_vietnamese_text(
+                    image,
+                    label,
+                    (x1, max(y1 - 35, 5)),
+                    color=(0, 255, 0),
+                    size=28,
+                )
+
             self.image_ready.emit(
                 to_qimage(image)
             )
-            self.results_ready.emit(results)
+            self.analysis_ready.emit(analysis)
 
         except Exception as error:
             self.failed.emit(str(error))
@@ -72,11 +102,11 @@ class ImageController(QObject):
 
     def __init__(
         self,
-        detector,
+        ai_engine: AIEngine,
         parent=None,
     ) -> None:
         super().__init__(parent)
-        self.detector = detector
+        self.ai_engine = ai_engine
         self._busy = False
         self._thread = None
         self._user_id = None
@@ -198,15 +228,15 @@ class ImageController(QObject):
         )
 
         self._thread = ImageDetectThread(
-            self.detector,
+            self.ai_engine,
             self._selected_image_path,
             self._user_id,
         )
         self._thread.image_ready.connect(
             self._on_image_ready
         )
-        self._thread.results_ready.connect(
-            self._on_results_ready
+        self._thread.analysis_ready.connect(
+            self._on_analysis_ready
         )
         self._thread.failed.connect(
             self._on_failed
@@ -222,55 +252,18 @@ class ImageController(QObject):
     ) -> None:
         self.imageChanged.emit(image)
 
-    def _on_results_ready(
+    def _on_analysis_ready(
         self,
-        results: list,
+        analysis: object,
     ) -> None:
-        formatted_results = []
-
-        for item in results:
-            english = item.get("english", "")
-            vietnamese = item.get("vietnamese") or english
-            category = item.get("category") or "Unknown"
-            level = item.get("level") or "Unknown"
-            confidence = float(
-                item.get("confidence", 0.0)
-            )
-
-            formatted_results.append(
-                {
-                    "english": english,
-                    "vietnamese": vietnamese,
-                    "category": category,
-                    "level": level,
-                    "confidence": confidence,
-                    "text": (
-                        f"{english} - {vietnamese} "
-                        f"[{category} - {level}] "
-                        f"({confidence:.2f})"
-                    ),
-                }
-            )
-
-        formatted_results.sort(
-            key=lambda item: item["confidence"],
-            reverse=True,
+        formatted_results = analysis.detections_as_dicts(
+            include_box=False,
         )
         self._results = formatted_results
         self.resultsChanged.emit(formatted_results)
 
-        if formatted_results:
-            primary_word = formatted_results[0]["english"]
-            self._related_words = get_related_words(
-                primary_word,
-                n=3,
-            )
-            self._cluster_words = get_words_in_same_cluster(
-                primary_word
-            )
-        else:
-            self._related_words = []
-            self._cluster_words = []
+        self._related_words = analysis.related_words_as_dicts()
+        self._cluster_words = analysis.cluster_words_as_dicts()
 
         self.relatedWordsChanged.emit(
             self._related_words

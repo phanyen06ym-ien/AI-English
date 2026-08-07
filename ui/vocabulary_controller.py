@@ -11,9 +11,7 @@ from PySide6.QtCore import (
     Slot,
 )
 
-from dataset.vocabulary import all_words
-from ml.kmeans import get_words_in_same_cluster
-from ml.knn import get_related_words
+from ai.pipeline import AIEngine
 from ui.speech_worker import SpeakTask
 
 
@@ -110,13 +108,13 @@ class VocabularyController(QObject):
 
     def __init__(
         self,
+        ai_engine: AIEngine,
         parent=None,
     ) -> None:
         super().__init__(parent)
+        self.ai_engine = ai_engine
 
-        vocabulary = list(
-            all_words().values()
-        )
+        vocabulary = self.ai_engine.get_vocabulary_entries()
 
         self._model = VocabularyModel(
             vocabulary
@@ -140,7 +138,7 @@ class VocabularyController(QObject):
         self,
         word: str,
     ) -> None:
-        words = get_related_words(
+        words = self.ai_engine.get_related_word_dicts(
             word,
             n=3,
         )
@@ -154,7 +152,7 @@ class VocabularyController(QObject):
         self,
         word: str,
     ) -> None:
-        words = get_words_in_same_cluster(
+        words = self.ai_engine.get_cluster_word_dicts(
             word
         )
 

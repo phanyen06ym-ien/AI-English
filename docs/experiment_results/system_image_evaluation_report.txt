@@ -1,0 +1,79 @@
+ĐÁNH GIÁ KIỂM THỬ HỆ THỐNG AI-ENGLISH
+======================================================================
+
+Ghi chú quan trọng:
+- Project hiện không có file ground truth cho từng ảnh test, nên báo cáo này không tính accuracy/precision/recall so với nhãn thật.
+- Các tỷ lệ dưới đây được tính từ kết quả chạy thật của YOLO, KNN và KMeans trên ảnh thật trong dataset/test_images.
+
+1. Bảng tổng hợp
+                                  metric      value
+               Tổng số ảnh trong thư mục         24
+                     Số ảnh theo yêu cầu         25
+                        YOLO detect được         21
+                  YOLO không detect được          3
+                     YOLO Detection Rate     87.50%
+                  YOLO Not Detected Rate     12.50%
+      YOLO Confidence TB trên ảnh detect     89.34%
+                       Thời gian YOLO TB 153.909 ms
+           Từ detect có trong vocabulary         21
+                     Vocabulary Coverage     87.50%
+                            KNN có gợi ý         21
+          KNN Success Rate trên tổng ảnh     87.50%
+   KNN Success Rate trên ảnh YOLO detect    100.00%
+               KNN Category Precision TB     55.56%
+                        Thời gian KNN TB  10.344 ms
+                    KMeans phân cụm được         21
+       KMeans Success Rate trên tổng ảnh     87.50%
+KMeans Success Rate trên ảnh YOLO detect    100.00%
+        KMeans Cluster Purity TB theo từ    100.00%
+                     Thời gian KMeans TB   3.683 ms
+
+2. Phân bố kết quả YOLO
+  word  count
+laptop      5
+   cup      4
+ chair      4
+person      4
+  none      3
+ clock      2
+bottle      2
+
+3. Phân bố cụm KMeans trên các từ YOLO detect được
+cluster  count
+      1      8
+      0      5
+      3      4
+      2      4
+   none      3
+
+4. Chi tiết từng ảnh
+     image detected_word confidence  yolo_detected  in_vocabulary   category   level yolo_time_ms  knn_suggestion_count  knn_same_category_count knn_category_precision  knn_success knn_time_ms kmeans_cluster  kmeans_cluster_size  kmeans_same_category_count kmeans_cluster_purity_for_word  kmeans_success kmeans_time_ms
+ test1.jpg        laptop     93.93%           True           True Technology  Medium  1712.337 ms                     3                        3                100.00%         True  142.289 ms              0                    4                           4                        100.00%            True       9.305 ms
+test10.jpg        laptop     94.42%           True           True Technology  Medium    64.361 ms                     3                        3                100.00%         True    3.483 ms              0                    4                           4                        100.00%            True       3.018 ms
+test11.jpg           cup     97.76%           True           True      Daily    Easy    80.475 ms                     3                        2                 66.67%         True    3.253 ms              1                    3                           3                        100.00%            True       2.963 ms
+test12.jpg         chair     82.41%           True           True  Furniture    Easy   115.601 ms                     3                        1                 33.33%         True    3.455 ms              3                    2                           2                        100.00%            True       1.878 ms
+test14.jpg          none      0.00%          False          False    Unknown Unknown    82.041 ms                     0                        0                  0.00%        False    0.000 ms           none                    0                           0                          0.00%           False       0.000 ms
+test15.jpg        laptop     93.17%           True           True Technology  Medium    71.009 ms                     3                        3                100.00%         True    3.231 ms              0                    4                           4                        100.00%            True       3.082 ms
+test16.jpg           cup     86.00%           True           True      Daily    Easy    62.745 ms                     3                        2                 66.67%         True    3.408 ms              1                    3                           3                        100.00%            True       2.100 ms
+test17.jpg         chair     83.75%           True           True  Furniture    Easy    54.053 ms                     3                        1                 33.33%         True    3.254 ms              3                    2                           2                        100.00%            True       3.456 ms
+test18.jpg           cup     89.48%           True           True      Daily    Easy    79.294 ms                     3                        2                 66.67%         True    4.622 ms              1                    3                           3                        100.00%            True       3.986 ms
+test19.jpg        person     90.81%           True           True      Human    Easy   136.544 ms                     3                        0                  0.00%         True    3.748 ms              2                    1                           1                        100.00%            True       3.635 ms
+ test2.jpg        person     94.02%           True           True      Human    Easy    65.816 ms                     3                        0                  0.00%         True    2.458 ms              2                    1                           1                        100.00%            True       2.401 ms
+test20.jpg          none      0.00%          False          False    Unknown Unknown    62.561 ms                     0                        0                  0.00%        False    0.000 ms           none                    0                           0                          0.00%           False       0.000 ms
+test21.jpg         chair     88.67%           True           True  Furniture    Easy    81.812 ms                     3                        1                 33.33%         True    3.579 ms              3                    2                           2                        100.00%            True       3.224 ms
+test22.jpg        laptop     93.47%           True           True Technology  Medium    77.694 ms                     3                        3                100.00%         True    3.696 ms              0                    4                           4                        100.00%            True       3.649 ms
+test23.jpg         clock     89.10%           True           True      Daily    Easy    84.693 ms                     3                        2                 66.67%         True    4.002 ms              1                    3                           3                        100.00%            True       3.718 ms
+test24.jpg         clock     78.56%           True           True      Daily    Easy    95.037 ms                     3                        2                 66.67%         True    4.737 ms              1                    3                           3                        100.00%            True       4.284 ms
+test25.jpg        bottle     87.59%           True           True      Daily    Easy    74.865 ms                     3                        2                 66.67%         True    5.369 ms              1                    3                           3                        100.00%            True       4.825 ms
+ test3.jpg           cup     76.58%           True           True      Daily    Easy   106.812 ms                     3                        2                 66.67%         True    4.074 ms              1                    3                           3                        100.00%            True       2.665 ms
+ test4.jpg        bottle     96.06%           True           True      Daily    Easy    85.758 ms                     3                        2                 66.67%         True    4.231 ms              1                    3                           3                        100.00%            True       3.898 ms
+ test5.jpg          none      0.00%          False          False    Unknown Unknown   116.398 ms                     0                        0                  0.00%        False    0.000 ms           none                    0                           0                          0.00%           False       0.000 ms
+ test6.jpg        person     81.36%           True           True      Human    Easy    82.337 ms                     3                        0                  0.00%         True    3.935 ms              2                    1                           1                        100.00%            True       2.953 ms
+ test7.jpg        person     89.82%           True           True      Human    Easy   100.232 ms                     3                        0                  0.00%         True    3.317 ms              2                    1                           1                        100.00%            True       4.034 ms
+ test8.jpg         chair     91.54%           True           True  Furniture    Easy    95.454 ms                     3                        1                 33.33%         True    3.678 ms              3                    2                           2                        100.00%            True       4.566 ms
+ test9.jpg        laptop     97.71%           True           True Technology  Medium   105.884 ms                     3                        3                100.00%         True    3.419 ms              0                    4                           4                        100.00%            True       3.699 ms
+
+5. Kết luận
+- YOLO detect được 21/24 ảnh, tương ứng 87.50%.
+- KNN sinh gợi ý cho 21/24 ảnh, Category Precision trung bình 55.56%.
+- KMeans phân cụm được 21/24 ảnh, Cluster Purity trung bình theo từ 100.00%.

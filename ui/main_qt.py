@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import sys
+import logging
 from pathlib import Path
 
 os.environ.setdefault(
@@ -33,7 +34,7 @@ from PySide6.QtQml import (
 )
 from PySide6.QtWidgets import QApplication
 
-from detection.detector import ObjectDetector
+from ai.pipeline import AIEngine
 from ui.auth_controller import AuthController
 from ui.history_controller import HistoryController
 from ui.image_controller import ImageController
@@ -52,6 +53,8 @@ QML_DIR = (
 
 
 def run() -> None:
+    logging.basicConfig(level=logging.INFO)
+
     app = QApplication(
         sys.argv
     )
@@ -69,24 +72,25 @@ def run() -> None:
     )
 
     try:
-        detector = ObjectDetector()
+        ai_engine = AIEngine.create_default()
 
     except Exception as error:
-        print(
-            f"Không thể tải mô hình YOLO: {error}"
+        logging.getLogger(__name__).exception(
+            "Khong the tai AIEngine: %s",
+            error,
         )
         raise
 
     vocabulary_controller = (
-        VocabularyController()
+        VocabularyController(ai_engine)
     )
 
     image_controller = (
-        ImageController(detector)
+        ImageController(ai_engine)
     )
 
     webcam_controller = (
-        WebcamController(detector)
+        WebcamController(ai_engine)
     )
 
     history_controller = (

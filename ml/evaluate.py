@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-from ml.features import read_vocabulary
-from ml.kmeans import (
+from ai.feature_engineering import read_vocabulary
+from ai.kmeans import (
     cluster_vocabulary,
     get_kmeans_metrics,
     get_words_in_same_cluster,
 )
-from ml.knn import get_related_words
+from ai.knn import get_related_words
 
 
 def evaluate_kmeans() -> dict:
