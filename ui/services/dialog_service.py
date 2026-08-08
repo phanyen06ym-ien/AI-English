@@ -26,6 +26,8 @@ from PySide6.QtCore import (
     Slot,
 )
 
+from core import messages
+from core.errors import user_message_for
 from ui.ui_logger import get_ui_logger, log_ui_event
 
 
@@ -42,10 +44,10 @@ class DialogLevel(str, Enum):
 
 
 DEFAULT_TITLES: dict[DialogLevel, str] = {
-    DialogLevel.LOADING: "Đang xử lý",
-    DialogLevel.SUCCESS: "Thành công",
-    DialogLevel.WARNING: "Cảnh báo",
-    DialogLevel.ERROR: "Lỗi",
+    DialogLevel.LOADING: messages.TITLE_LOADING,
+    DialogLevel.SUCCESS: messages.TITLE_SUCCESS,
+    DialogLevel.WARNING: messages.TITLE_WARNING,
+    DialogLevel.ERROR: messages.TITLE_ERROR,
 }
 
 #: Tu khoa dung de suy ra muc do tu cac message tieng Viet dang co.
@@ -244,6 +246,19 @@ class DialogService(QObject):
         self.errorShown.emit(
             title or DEFAULT_TITLES[DialogLevel.ERROR],
             message,
+        )
+
+    def publishError(
+        self,
+        error: BaseException,
+    ) -> None:
+        """Hien mot exception cho nguoi dung MOT CACH AN TOAN.
+
+        Sprint 7: khong bao gio dua `str(error)` thang ra man hinh - noi dung
+        do co the chua chuoi ket noi database hoac duong dan he thong.
+        """
+        self.showError(
+            user_message_for(error)
         )
 
     @Slot(str)

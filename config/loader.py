@@ -21,6 +21,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 from config.environment import Environment
+from core.redaction import register_secret
 from config.schema import (
     AIConfig,
     AppConfig,
@@ -118,14 +119,23 @@ def load_dotenv_file(
 def build_database_config(
     defaults: DatabaseConfig | None = None,
 ) -> DatabaseConfig:
+    """Doc cau hinh database VA dang ky mat khau vao bo loc log ngay lap tuc.
+
+    Sprint 7: dang ky o day chu khong doi toi luc `setup_logging()`. Ly do:
+    mot script chay doc lap co the ghi log truoc khi logging duoc lap dat -
+    luc do mat khau se lot ra console ma khong ai chan.
+    """
     base = defaults if defaults is not None else DatabaseConfig()
+
+    password = _read_str("DB_PASSWORD", base.password)
+    register_secret(password)
 
     return DatabaseConfig(
         host=_read_str("DB_HOST", base.host),
         port=_read_str("DB_PORT", base.port),
         name=_read_str("DB_NAME", base.name),
         user=_read_str("DB_USER", base.user),
-        password=_read_str("DB_PASSWORD", base.password),
+        password=password,
         pool_min_connections=_read_int(
             "DB_POOL_MIN",
             base.pool_min_connections,

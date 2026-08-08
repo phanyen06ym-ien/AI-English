@@ -1,3 +1,4 @@
+import logging
 import cv2
 from time import monotonic
 
@@ -6,6 +7,9 @@ from detection.classify import classify_word
 from detection.detector import ObjectDetector
 from utils.config import CAMERA_ID
 from utils.helper import draw_vietnamese_text
+
+logger = logging.getLogger("detection.webcam")
+
 
 
 WINDOW_NAME = "AI English - Webcam Detection"
@@ -21,17 +25,17 @@ def run_webcam():
     last_objects = []
 
     if not cap.isOpened():
-        print("Không mở được webcam")
+        logger.info("Không mở được webcam")
         return
 
-    print("Đang mở webcam... Nhấn Q hoặc Esc để thoát.")
+    logger.info("Đang mở webcam... Nhấn Q hoặc Esc để thoát.")
 
     try:
         while True:
             ret, frame = cap.read()
 
             if not ret:
-                print("Không đọc được frame từ webcam")
+                logger.info("Không đọc được frame từ webcam")
                 break
 
             now = monotonic()
@@ -88,6 +92,10 @@ def run_webcam():
 
 
 if __name__ == "__main__":
+    # Script chay doc lap: tu lap dat logging de bao cao van hien ra console.
+    from core.logging_config import setup_logging
+
+    setup_logging(level="INFO")
     from utils.console import use_utf8_console
 
     use_utf8_console()

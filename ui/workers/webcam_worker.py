@@ -20,6 +20,7 @@ from PySide6.QtCore import Signal
 from PySide6.QtGui import QImage
 
 from config.schema import AIConfig, CameraConfig, HistoryConfig, ThreadConfig
+from core import messages
 from ui.qt_utils import to_qimage
 from ui.services.detection_service import DetectionService
 from ui.services.history_service import (
@@ -46,10 +47,10 @@ STOP_WAIT_MS = DEFAULT_DISPOSE_TIMEOUT_MS
 #: Chu ky kiem tra co huy khi hang doi lich su dang trong (giay).
 HISTORY_POLL_SECONDS = ThreadConfig.poll_interval_seconds
 
-ERROR_CAMERA_OPEN = "Không mở được webcam."
-STATUS_CAMERA_RUNNING = "Webcam đang hoạt động."
-STATUS_CAMERA_STOPPED = "Webcam đã tắt."
-STATUS_NO_OBJECT = "Chưa phát hiện vật thể."
+ERROR_CAMERA_OPEN = messages.MSG_CAMERA_OPEN_FAILED
+STATUS_CAMERA_RUNNING = messages.MSG_CAMERA_RUNNING
+STATUS_CAMERA_STOPPED = messages.MSG_CAMERA_STOPPED
+STATUS_NO_OBJECT = messages.MSG_CAMERA_NO_OBJECT
 
 
 class HistoryWriterWorker(ManagedWorker):
@@ -407,7 +408,7 @@ class WebcamWorker(ManagedWorker):
 
             perf_monitor.increment("status_emit")
             self.statusChanged.emit(
-                f"Phát hiện {len(results)} vật thể."
+                messages.detected_count_message(len(results))
             )
             self._emit_word_suggestions(
                 results[0]["english"],

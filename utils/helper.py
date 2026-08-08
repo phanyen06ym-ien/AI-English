@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 
 import cv2
@@ -7,6 +8,9 @@ import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 
 from utils.config import FONT_PATH
+
+
+logger = logging.getLogger(__name__)
 
 
 def get_font(
@@ -27,13 +31,14 @@ def get_font(
                 size,
             )
         except OSError as error:
-            print(
-                f"Không thể tải font {font_path}: {error}"
+            logger.warning(
+                "Khong tai duoc font %s: %s",
+                font_path,
+                error,
             )
 
-    print(
-        "Không tìm thấy NotoSans-Regular.ttf. "
-        "Đang sử dụng font mặc định."
+    logger.warning(
+        "Khong tim thay NotoSans-Regular.ttf, dung font mac dinh"
     )
 
     return ImageFont.load_default()

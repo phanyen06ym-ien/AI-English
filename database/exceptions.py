@@ -19,59 +19,47 @@ loi minh quan tam, khong con phai doan tu gia tri tra ve.
 
 from __future__ import annotations
 
+from core import messages
+from core.errors import AppError
 
-class RepositoryError(Exception):
-    """Loi goc cua tang Repository."""
 
-    #: Ma loi de tang tren nhan dien ma khong can doc chuoi.
+class RepositoryError(AppError):
+    """Loi goc cua tang Repository.
+
+    Sprint 7: ke thua `AppError` de bat duoc chung voi moi loi khac cua he thong.
+    API (`error_code`, `user_message`, `message`, `cause`) giu nguyen.
+    """
+
     error_code = "REPOSITORY_ERROR"
-
-    #: Thong diep hien thi cho nguoi dung cuoi.
-    user_message = "Không truy cập được dữ liệu."
-
-    def __init__(
-        self,
-        message: str = "",
-        cause: Exception | None = None,
-    ) -> None:
-        super().__init__(message or self.user_message)
-
-        self.message = message or self.user_message
-        self.cause = cause
-
-    def __str__(self) -> str:
-        if self.cause is None:
-            return self.message
-
-        return f"{self.message} ({self.cause})"
+    user_message = messages.MSG_DATA_UNAVAILABLE
 
 
 class ConnectionFailedError(RepositoryError):
     """Khong mo duoc ket noi toi database."""
 
     error_code = "DB_CONNECTION_FAILED"
-    user_message = "Không kết nối được cơ sở dữ liệu."
+    user_message = messages.MSG_DATABASE_UNREACHABLE
 
 
 class QueryFailedError(RepositoryError):
     """Cau lenh SQL that bai."""
 
     error_code = "DB_QUERY_FAILED"
-    user_message = "Không thực hiện được thao tác dữ liệu."
+    user_message = messages.MSG_DATA_OPERATION_FAILED
 
 
 class NotFoundError(RepositoryError):
     """Khong tim thay ban ghi can tim."""
 
     error_code = "DB_NOT_FOUND"
-    user_message = "Không tìm thấy dữ liệu."
+    user_message = messages.MSG_DATA_NOT_FOUND
 
 
 class IntegrityError(RepositoryError):
     """Vi pham rang buoc du lieu, vi du trung username."""
 
     error_code = "DB_INTEGRITY_ERROR"
-    user_message = "Dữ liệu không hợp lệ hoặc đã tồn tại."
+    user_message = messages.MSG_DATA_INVALID
 
 
 __all__ = [

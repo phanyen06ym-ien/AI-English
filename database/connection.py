@@ -25,6 +25,7 @@ Cau hinh, schema va cau SQL KHONG doi.
 
 from __future__ import annotations
 
+import logging
 import os
 import threading
 from contextlib import contextmanager
@@ -43,6 +44,9 @@ from utils import perf_monitor
 
 
 load_dotenv()
+
+
+logger = logging.getLogger(__name__)
 
 
 #: So ket noi toi thieu giu san trong pool (gia tri mac dinh).
@@ -202,8 +206,13 @@ def _leased_connection():
                 connection,
                 close=broken,
             )
-        except Exception:
-            pass
+        except Exception as release_error:
+            # Khong tra duoc ket noi ve pool khong duoc che loi GOC,
+            # nhung cung khong duoc im lang (NHIEM VU 4 - Sprint 7).
+            logger.warning(
+                "Khong tra duoc ket noi ve pool: %s",
+                release_error,
+            )
 
 
 def _translate(error: Exception) -> Exception:
@@ -263,8 +272,12 @@ def database_cursor(commit: bool = False):
         except Exception as error:
             try:
                 connection.rollback()
-            except Exception:
-                pass
+            except Exception as rollback_error:
+                logger.warning(
+                    "Rollback that bai sau loi %s: %s",
+                    type(error).__name__,
+                    rollback_error,
+                )
 
             raise _translate(error) from error
 

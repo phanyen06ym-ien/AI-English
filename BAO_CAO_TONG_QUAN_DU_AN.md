@@ -6,8 +6,8 @@
 |---|---|
 | Dự án | AI-English — Ứng dụng học từ vựng tiếng Anh qua nhận diện vật thể |
 | Ngày báo cáo | 08/08/2026 |
-| Phạm vi báo cáo | Quét toàn bộ dự án + tổng hợp thay đổi Sprint 1 → 6 |
-| Trạng thái | Sprint 1 → 6 **HOÀN THÀNH** — 303/303 test PASS |
+| Phạm vi báo cáo | Quét toàn bộ dự án + tổng hợp thay đổi Sprint 1 → 7 |
+| Trạng thái | Sprint 1 → 7 **HOÀN THÀNH** — 366/366 test PASS |
 
 ---
 
@@ -18,20 +18,20 @@ thống dùng **YOLO** nhận diện vật thể, tra **từ vựng Anh–Việt
 liên quan bằng **k-NN** và các từ cùng nhóm chủ đề bằng **K-Means**. Toàn bộ kết
 quả được lưu vào lịch sử để thống kê tiến độ học.
 
-Dự án đã trải qua **6 sprint tái cấu trúc** với một nguyên tắc xuyên suốt:
+Dự án đã trải qua **7 sprint tái cấu trúc** với một nguyên tắc xuyên suốt:
 
 > **Không thay đổi thuật toán AI, không thay đổi Database, không thay đổi giao diện.
 > Chỉ thay đổi cách các tầng nói chuyện với nhau.**
 
-Kết quả sau 6 sprint:
+Kết quả sau 7 sprint:
 
-| Tiêu chí | Trước Sprint 1 | Sau Sprint 6 |
+| Tiêu chí | Trước Sprint 1 | Sau Sprint 7 |
 |---|---|---|
 | Số tầng kiến trúc rõ ràng | 2 (GUI + logic trộn lẫn) | 7 (View → Controller → ViewModel → Worker → Service → Repository → Data) |
 | Business logic trong Controller | Rất nhiều | **0** |
 | SQL trong tầng Service | Có | **0** |
 | Chạy test không cần YOLO/DB/webcam | Không | **Có** |
-| Số unit test tự động | 0 (chỉ script thủ công) | **303 test, PASS 100%** |
+| Số unit test tự động | 0 (chỉ script thủ công) | **366 test, PASS 100%** |
 | Điểm gọi AI duy nhất | Không có | `AIEngine` |
 | Dòng code Controller | 1.800 | 864 (**−52%**) |
 | Thời gian 1 truy vấn database | 1.092 ms | **400 ms** (nhanh hơn 2,7×) |
@@ -39,6 +39,8 @@ Kết quả sau 6 sprint:
 | Tác vụ nền hủy được | 3/8 | **8/8** |
 | Tham số đổi được không cần sửa code | 0 | **23 biến môi trường** |
 | Thư viện ghim phiên bản | 1/18 | **18/18** |
+| Lệnh `print()` thay vì logging | 68 | **18** (giữ nguyên có chủ ý trong 2 file AI) |
+| Cây exception thống nhất | Không có | **18 mã lỗi dưới một gốc** |
 | Lỗi thread/race đã phát hiện & sửa | — | **5** |
 
 ---
@@ -83,6 +85,7 @@ Kết quả sau 6 sprint:
 | `ui/qml/` | 15 file | Giao diện | Không đụng (theo yêu cầu) |
 | `utils/` | 559 → 646 | Font, speech, mật khẩu, đo hiệu năng | ✅ Sprint 4, 6 |
 | `config/` | 0 → 900 | AppConfig có định kiểu, loader, validate | ✅ Sprint 6 (mới) |
+| `core/` | 0 → 850 | Cây exception, logging, chống rò rỉ, thông điệp | ✅ Sprint 7 (mới) |
 | `test/` | 4.362 | Kiểm thử | ✅ Sprint 3 mở rộng mạnh |
 
 ### 2.4 Luồng nghiệp vụ chính
@@ -346,6 +349,59 @@ utils.config.CAMERA_ID  : 2      (mặc định 0)
 **Không đổi:** **mọi giá trị tham số** — chỉ đổi chỗ cất giữ. Có 7 bài test khẳng
 định từng con số một bằng đúng giá trị trước Sprint 6. Không một test cũ nào phải sửa.
 
+### 3.7 Sprint 7 — Logging & Error Handling
+
+**Vấn đề:** Toàn bộ hệ thống ghi log bằng **một dòng** `logging.basicConfig(INFO)`
+— không ghi ra file, không chỉnh được mức cho từng tầng, và **không có gì ngăn mật
+khẩu lọt vào log**. Cộng thêm 68 lệnh `print()` không tắt được, không lọc được.
+Hai cây exception (`ConfigError`, `RepositoryError`) không có gốc chung nên không
+thể bắt "mọi lỗi của ứng dụng" bằng một câu lệnh.
+
+**Giải pháp:**
+
+```text
+AppError  ← gốc chung, 18 mã lỗi, không mã nào trùng
+   ├── ConfigError      ├── AIError       ├── UIError
+   └── RepositoryError  └── ExternalServiceError
+
+Mỗi lỗi mang HAI thông điệp:
+   technical_message → ghi log, có chi tiết kỹ thuật
+   display_message   → cho người dùng, KHÔNG bao giờ lộ chi tiết
+```
+
+**Kết quả cụ thể:**
+
+| Trước | Sau |
+|---|---|
+| 1 dòng `basicConfig` | Logger phân cấp 9 tầng + file xoay vòng 5×2 MB |
+| Thư viện thứ ba đổ log rác | 8 thư viện bị hạ xuống WARNING |
+| Không có gì chặn mật khẩu | 3 điểm chặn: Filter, Formatter, đăng ký lúc nạp config |
+| 68 lệnh `print()` | 18 (giữ nguyên có chủ ý) |
+| 2 cây exception rời rạc | 1 gốc `AppError`, 18 mã lỗi |
+| Thông điệp rải rác 7 file | 1 catalog `core/messages.py` (34 thông điệp) |
+| 3 chỗ `except: pass` im lặng | 0 |
+
+Chứng minh trên mật khẩu Supabase **thật**:
+
+```
+ERROR  database.demo  connect postgresql://postgres.ydjg...:***@aws-0-...supabase.com/postgres
+ERROR  database.demo  password=***
+```
+
+**Hai lỗi thật phát hiện khi viết test:**
+
+1. **Thứ tự mẫu che làm lọt token.** Mẫu `keyword_assignment` khớp
+   `Authorization: Bearer` trước, che nhầm chữ "Bearer" và để token thật đi qua
+   nguyên vẹn. Đã sửa bằng cách cho mẫu `bearer_token` chạy trước.
+2. **Che trước khi định dạng làm mất bản ghi log.** Bộ lọc che `record.msg` khi
+   còn nguyên `%s`; mẫu chuỗi kết nối coi `%s` là mật khẩu và thay bằng `***`,
+   khiến `logging` ném lỗi và **mất luôn bản ghi**. Đã sửa: định dạng xong rồi
+   mới che.
+
+**Không đổi:** `ai/`, `ml/knn.py`, `ml/kmeans.py` vẫn nguyên vẹn (quyết định có
+chủ ý — xem mục 6). Nội dung mọi thông điệp người dùng giữ nguyên từng ký tự.
+Không một test cũ nào phải sửa.
+
 ---
 
 ## 4. NĂM LỖI THẬT ĐƯỢC PHÁT HIỆN & SỬA
@@ -414,14 +470,16 @@ hạn mức thì bỏ khung hình mới thay vì xếp thêm.
 | `test_thread_safety.py` — An toàn đa luồng (Sprint 5) | 16 | ✅ PASS |
 | `test_config.py` — Cấu hình & validate (Sprint 6) | 55 | ✅ PASS |
 | `test_di.py` — Dependency Injection (Sprint 6) | 22 | ✅ PASS |
-| **Tổng** | **303** | **✅ PASS 100%** |
+| `test_logging.py` — Logging & chống rò rỉ (Sprint 7) | 35 | ✅ PASS |
+| `test_error_handling.py` — Cây exception & error boundary (Sprint 7) | 28 | ✅ PASS |
+| **Tổng** | **366** | **✅ PASS 100%** |
 
-Bộ test chạy trong **7,06 giây**, **không cần** YOLO, PostgreSQL hay webcam thật.
+Bộ test chạy trong **9,88 giây**, **không cần** YOLO, PostgreSQL hay webcam thật.
 
 Lệnh chạy:
 
 ```bash
-python -m unittest test.test_ai_engine test.test_config test.test_di test.test_repository test.test_database_service test.test_worker test.test_viewmodel test.test_controller test.test_cancellation test.test_thread_safety
+python -m unittest test.test_ai_engine test.test_config test.test_di test.test_repository test.test_database_service test.test_worker test.test_viewmodel test.test_controller test.test_cancellation test.test_thread_safety test.test_logging test.test_error_handling
 ```
 
 ### 5.2 Test bảo vệ kiến trúc
@@ -439,6 +497,9 @@ Ngoài test chức năng, dự án có các test **tự động chặn việc ph
 | `NoScatteredEnvReadTest` | Chỉ tầng `config/` được đọc biến môi trường |
 | `DefaultValueTest` | Mọi giá trị mặc định bằng đúng giá trị trước Sprint 6 |
 | `RequirementsTest` | Mọi thư viện đều ghim phiên bản |
+| `NoPrintLeftTest` | Quét 9 package bằng `ast`, không file nào ngoài danh sách miễn trừ được gọi `print()` |
+| `NoSilentSwallowTest` | `except: pass` phải có ghi chú giải thích |
+| `DatabasePasswordNeverLeaksTest` | Mật khẩu không tới được file log |
 
 Nghĩa là: nếu ai đó vô tình đưa business logic ngược vào Controller, **test sẽ đỏ ngay**.
 
@@ -482,9 +543,12 @@ sprint tiếp theo):
 | 7 | ~~Cấu hình rải rác giữa `utils/config.py`, biến môi trường và hằng số trong code~~ | — | ✅ Sprint 6 |
 | 8 | ~~`requirements.txt` chỉ ghim phiên bản cho `ultralytics`~~ | — | ✅ Sprint 6 |
 | 9 | ~~Magic number rải rác chưa vào config~~ | — | ✅ Sprint 6 |
-| 10 | Còn **68 lệnh `print()`** trong `ml/`, `detection/`, `dataset/`, `utils/` thay vì logging | 🔴 Cao | Sprint 7 |
-| 11 | Chưa có cây exception thống nhất — `ConfigError` và `RepositoryError` còn tách rời | 🟡 Trung bình | Sprint 7 |
-| 12 | Chưa đo hiệu năng end-to-end có hệ thống (YOLO, FPS webcam, RAM) | 🟡 Trung bình | Sprint 8 |
+| 10 | ~~68 lệnh `print()` thay vì logging~~ | — | ✅ Sprint 7 (còn 18, giữ có chủ ý) |
+| 11 | ~~Chưa có cây exception thống nhất~~ | — | ✅ Sprint 7 |
+| 12 | Chưa đo độ phủ kiểm thử (coverage) | 🔴 Cao | Sprint 8 |
+| 13 | Chưa đo hiệu năng end-to-end (thời gian nạp YOLO, FPS webcam, RAM) | 🟡 Trung bình | Sprint 8 |
+| 14 | Chưa có test tích hợp và end-to-end — hiện chỉ có unit test | 🟡 Trung bình | Sprint 8 |
+| 15 | `ml/knn.py`, `ml/kmeans.py` còn 18 `print()` — giữ nguyên để bảo toàn cam kết "không sửa AI" | 🟢 Thấp | Tùy chọn |
 
 ---
 
@@ -504,27 +568,26 @@ sprint tiếp theo):
 | 4 | Database & Repository Refactor | ✅ Xong | Nhanh hơn 2,7× |
 | 5 | Worker & Thread Refactor | ✅ Xong | Giao diện hết treo |
 | 6 | Config & Dependency Injection | ✅ Xong | 23 biến đổi được khi chạy |
-| **7** | **Logging & Error Handling** | ⏭️ Tiếp theo | Còn ~55% — log tầng GUI đã xong |
-| 8 | Testing & Performance | 🔶 Còn ~40% | 303 test đã có |
+| 7 | Logging & Error Handling | ✅ Xong | Mật khẩu không còn lọt vào log |
+| **8** | **Testing & Performance** | ⏭️ Sprint cuối | Còn ~40% — 366 test đã có |
 
-### Vì sao Sprint 7 sẽ thuận lợi
+### Vì sao Sprint 8 sẽ thuận lợi
 
-Năm sprint trước đã chuẩn bị sẵn điểm bám:
+Sáu sprint trước đã chuẩn bị sẵn điểm bám:
 
-1. `LoggingConfig` đã có `level` và `performance_enabled`, đọc được từ `LOG_LEVEL`.
-   Sprint 7 chỉ cần thêm file handler và xoay vòng file log.
-2. `Environment.default_log_level` đã phân biệt development / testing / production.
-3. Cây exception đã có sẵn mẫu ở hai nơi — `ConfigError` (Sprint 6) và
-   `RepositoryError` (Sprint 4) — đều có mã lỗi và thông điệp cho người dùng.
-   Sprint 7 chỉ cần gom chúng dưới một gốc chung.
-4. `DatabaseConfig.masked()` đã chặn rò rỉ mật khẩu — Sprint 7 mở rộng nguyên tắc
-   này cho toàn bộ log.
+1. **366 test** đã chia theo tầng, chạy 9,88 giây, không cần YOLO/database/webcam.
+2. `requirements-dev.txt` đã ghim sẵn `pytest`, `pytest-cov`, `psutil` — cài là
+   đo được độ phủ ngay.
+3. Đã có 2 script benchmark từ Sprint 4 và 5 (`benchmark_database.py`,
+   `benchmark_thread.py`) làm mẫu.
+4. `utils/perf_monitor.py` đã ghi qua logger, bật bằng `AI_ENGLISH_PERF=1` — số
+   liệu hiệu năng giờ vào được file log.
 
 ---
 
 ## 8. KẾT LUẬN
 
-Sau sáu sprint, dự án AI-English đã chuyển từ một ứng dụng **trộn lẫn giao diện,
+Sau bảy sprint, dự án AI-English đã chuyển từ một ứng dụng **trộn lẫn giao diện,
 nghiệp vụ và truy vấn SQL** sang một kiến trúc **phân tầng rõ ràng, có kiểm thử tự
 động bảo vệ**.
 
@@ -535,7 +598,8 @@ chức năng, nhưng đội phát triển giờ có thể:
 - Thay mô hình AI mà không đụng vào giao diện
 - Thay cơ sở dữ liệu mà không đụng vào giao diện
 - Đổi tham số qua `.env` mà không cần chạm vào mã nguồn
-- Chạy 303 bài kiểm thử trong 7,06 giây mà không cần cài YOLO hay kết nối database
+- Đọc lại file log khi người dùng báo lỗi, mà không sợ lộ mật khẩu
+- Chạy 366 bài kiểm thử trong 9,88 giây mà không cần cài YOLO hay kết nối database
 - Được cảnh báo tự động nếu ai đó phá vỡ kiến trúc
 
 Và người dùng cuối *có* thấy hai khác biệt rõ rệt:
@@ -555,6 +619,7 @@ Và người dùng cuối *có* thấy hai khác biệt rõ rệt:
 | `SPRINT_4_REPORT.md` | Chi tiết Sprint 4 — Database & Repository Refactor (13 mục) |
 | `SPRINT_5_REPORT.md` | Chi tiết Sprint 5 — Worker & Thread Refactor (14 mục) |
 | `SPRINT_6_REPORT.md` | Chi tiết Sprint 6 — Config & Dependency Injection (12 mục) |
+| `SPRINT_7_REPORT.md` | Chi tiết Sprint 7 — Logging & Error Handling (11 mục) |
 | `SPRINT_PROMPTS.md` | Đề bài chi tiết cho Sprint 4 → 8 |
 | `PROJECT_ARCHITECTURE_DISCOVERY.md` | Khảo sát kiến trúc ban đầu |
 | `AI_ALGORITHM_ANALYSIS.md` | Phân tích thuật toán AI |

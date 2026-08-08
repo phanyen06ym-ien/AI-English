@@ -1,11 +1,16 @@
 from __future__ import annotations
 
+import logging
+
 import os
 import threading
 import time
 import tracemalloc
 from collections import defaultdict
 from contextlib import contextmanager
+
+logger = logging.getLogger("utils.perf")
+
 
 
 ENABLED = os.getenv("AI_ENGLISH_PERF", "").strip() == "1"
@@ -39,8 +44,8 @@ def start() -> None:
     tracemalloc.start()
     if _process is not None:
         _process.cpu_percent(None)
-    print("[PERF] instrumentation enabled")
-    print(f"[PERF] torch_cuda_available={cuda_available()}")
+    logger.info("[PERF] instrumentation enabled")
+    logger.info(f"[PERF] torch_cuda_available={cuda_available()}")
 
 
 def cuda_available() -> bool:
@@ -114,8 +119,8 @@ def maybe_report(interval_seconds: float = 5.0) -> None:
         cpu_percent = _process.cpu_percent(None)
         thread_count = _process.num_threads()
 
-    print("[PERF] ---- 5s summary ----")
-    print(
+    logger.info("[PERF] ---- 5s summary ----")
+    logger.info(
         "[PERF] process "
         f"rss_mb={rss_mb:.1f} "
         f"cpu_percent={cpu_percent:.1f} "
@@ -130,9 +135,9 @@ def maybe_report(interval_seconds: float = 5.0) -> None:
         rate = count / elapsed
         if total:
             avg_ms = total / count * 1000.0
-            print(
+            logger.info(
                 f"[PERF] {name}: count={count} "
                 f"rate={rate:.2f}/s avg_ms={avg_ms:.2f}"
             )
         else:
-            print(f"[PERF] {name}: count={count} rate={rate:.2f}/s")
+            logger.info(f"[PERF] {name}: count={count} rate={rate:.2f}/s")

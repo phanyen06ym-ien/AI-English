@@ -18,6 +18,7 @@ import cv2
 from ai.models import ImageAnalysisResult
 from ai.pipeline import AIEngine
 from config.schema import UIConfig
+from core import messages
 from ui.services.annotation_service import (
     AnnotationService,
     build_image_label,
@@ -29,7 +30,7 @@ from ui.services.history_service import (
 )
 
 
-ERROR_IMAGE_UNREADABLE = "Không đọc được ảnh."
+ERROR_IMAGE_UNREADABLE = messages.MSG_IMAGE_UNREADABLE
 
 
 @dataclass(frozen=True)

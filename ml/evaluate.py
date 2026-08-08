@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import logging
+
 from ai.feature_engineering import read_vocabulary
 from ai.kmeans import (
     cluster_vocabulary,
@@ -7,6 +9,9 @@ from ai.kmeans import (
     get_words_in_same_cluster,
 )
 from ai.knn import get_related_words
+
+logger = logging.getLogger("ml.evaluate")
+
 
 
 def evaluate_kmeans() -> dict:
@@ -60,36 +65,36 @@ def run() -> None:
     """
     vocabulary = read_vocabulary()
 
-    print("=" * 60)
-    print("ĐÁNH GIÁ CÁC THUẬT TOÁN MACHINE LEARNING")
-    print("=" * 60)
+    logger.info("=" * 60)
+    logger.info("ĐÁNH GIÁ CÁC THUẬT TOÁN MACHINE LEARNING")
+    logger.info("=" * 60)
 
-    print(
+    logger.info(
         f"Số lượng từ vựng: {len(vocabulary)}"
     )
 
-    print("\n1. K-MEANS - PHÂN CỤM TỪ VỰNG")
+    logger.info("\n1. K-MEANS - PHÂN CỤM TỪ VỰNG")
 
     clusters = evaluate_kmeans()
 
     for cluster_id, words in sorted(
         clusters.items()
     ):
-        print(
+        logger.info(
             f"Cụm {cluster_id}: "
             f"{', '.join(words)}"
         )
 
     metrics = get_kmeans_metrics()
 
-    print("\nChỉ số K-Means:")
+    logger.info("\nChỉ số K-Means:")
 
-    print(
+    logger.info(
         f"- Số cụm: "
         f"{metrics['n_clusters']}"
     )
 
-    print(
+    logger.info(
         f"- Inertia/SSE: "
         f"{metrics['inertia']:.4f}"
     )
@@ -99,41 +104,45 @@ def run() -> None:
     ]
 
     if silhouette is not None:
-        print(
+        logger.info(
             f"- Silhouette Score: "
             f"{silhouette:.4f}"
         )
 
-    print("\n2. k-NN - GỢI Ý TỪ LIÊN QUAN")
+    logger.info("\n2. k-NN - GỢI Ý TỪ LIÊN QUAN")
 
     knn_results = evaluate_knn()
 
     for word, related_words in (
         knn_results.items()
     ):
-        print(
+        logger.info(
             f"{word}: "
             f"{', '.join(related_words)}"
         )
 
-    print("\n3. CÁC TỪ CÙNG CỤM VỚI LAPTOP")
+    logger.info("\n3. CÁC TỪ CÙNG CỤM VỚI LAPTOP")
 
     same_cluster = get_words_in_same_cluster(
         "laptop"
     )
 
     if same_cluster:
-        print(
+        logger.info(
             ", ".join(
                 item["english"]
                 for item in same_cluster
             )
         )
     else:
-        print("Không có từ cùng cụm.")
+        logger.info("Không có từ cùng cụm.")
 
 
 if __name__ == "__main__":
+    # Script chay doc lap: tu lap dat logging de bao cao van hien ra console.
+    from core.logging_config import setup_logging
+
+    setup_logging(level="INFO")
     from utils.console import use_utf8_console
 
     use_utf8_console()

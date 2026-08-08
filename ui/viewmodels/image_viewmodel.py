@@ -5,6 +5,7 @@ from __future__ import annotations
 from PySide6.QtCore import Property, Signal, Slot
 from PySide6.QtGui import QImage
 
+from core import messages
 from ui.services.detection_service import DetectionService
 from ui.state import UiState
 from ui.ui_logger import log_ui_event
@@ -15,12 +16,12 @@ from ui.workers.image_worker import (
 )
 
 
-STATUS_SELECT_FIRST = "Vui lòng chọn ảnh trước."
-STATUS_IMAGE_LOADING = "Đang tải ảnh..."
-STATUS_IMAGE_SELECTED = "Đã chọn ảnh. Bấm Nhận diện để chạy YOLO."
-STATUS_DETECTING = "Đang nhận diện..."
-STATUS_NO_OBJECT = "Không phát hiện vật thể nào."
-STATUS_CANCELLED = "Đã hủy nhận diện."
+STATUS_SELECT_FIRST = messages.MSG_SELECT_IMAGE_FIRST
+STATUS_IMAGE_LOADING = messages.MSG_IMAGE_LOADING
+STATUS_IMAGE_SELECTED = messages.MSG_IMAGE_SELECTED
+STATUS_DETECTING = messages.MSG_DETECTING
+STATUS_NO_OBJECT = messages.MSG_NO_OBJECT_FOUND
+STATUS_CANCELLED = messages.MSG_DETECTION_CANCELLED
 
 
 class ImageViewModel(BaseViewModel):
@@ -224,7 +225,7 @@ class ImageViewModel(BaseViewModel):
 
         if results:
             self.set_status(
-                f"Phát hiện {len(results)} vật thể."
+                messages.detected_count_message(len(results))
             )
         else:
             self.set_status(STATUS_NO_OBJECT)

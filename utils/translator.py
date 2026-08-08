@@ -1,7 +1,12 @@
 from __future__ import annotations
 
+import logging
+
 from dataset.object_mapping import OBJECT_MAPPING
 from dataset.vocabulary import get_word_info
+
+
+logger = logging.getLogger(__name__)
 
 
 def dich_tu(
@@ -53,9 +58,10 @@ def dich_tu(
         return translated_result.text
 
     except Exception as error:
-        print(
-            f"Không thể dịch từ "
-            f"'{normalized_word}': {error}"
+        logger.warning(
+            "Khong dich duoc tu %r: %s",
+            normalized_word,
+            error,
         )
 
         return "Chưa có nghĩa tiếng Việt"

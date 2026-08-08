@@ -1,10 +1,15 @@
 from __future__ import annotations
 
+import logging
+
 import json
 import random
 import shutil
 from collections import defaultdict
 from pathlib import Path
+
+logger = logging.getLogger("dataset.prepare")
+
 
 
 # =========================================================
@@ -94,12 +99,12 @@ def validate_paths() -> None:
     missing_paths = [path for path in required_paths if not path.exists()]
 
     if missing_paths:
-        print("\nKhông tìm thấy các đường dẫn sau:")
+        logger.info("\nKhông tìm thấy các đường dẫn sau:")
 
         for path in missing_paths:
-            print(f"- {path}")
+            logger.info(f"- {path}")
 
-        print(
+        logger.info(
             "\nHãy sửa biến COCO_ROOT trong file prepare_dataset.py "
             "cho đúng nơi bạn đã giải nén coco2017_subset."
         )
@@ -110,7 +115,7 @@ def validate_paths() -> None:
 def load_coco_json(json_path: Path) -> dict:
     """Đọc file annotation JSON của COCO."""
 
-    print(f"Đang đọc annotation: {json_path}")
+    logger.info(f"Đang đọc annotation: {json_path}")
 
     with json_path.open("r", encoding="utf-8") as file:
         return json.load(file)
@@ -264,7 +269,7 @@ def copy_records_to_split(
         destination_image = destination_images / file_name
 
         if not source_image.exists():
-            print(f"Bỏ qua vì không tìm thấy ảnh: {source_image}")
+            logger.info(f"Bỏ qua vì không tìm thấy ảnh: {source_image}")
             continue
 
         shutil.copy2(source_image, destination_image)
@@ -302,15 +307,15 @@ names:
 
     yaml_path.write_text(yaml_content, encoding="utf-8")
 
-    print(f"Đã tạo file YAML: {yaml_path}")
+    logger.info(f"Đã tạo file YAML: {yaml_path}")
 
 
 def main() -> None:
     random.seed(RANDOM_SEED)
 
-    print("=" * 60)
-    print("CHUẨN BỊ DATASET COCO CHO YOLOV8")
-    print("=" * 60)
+    logger.info("=" * 60)
+    logger.info("CHUẨN BỊ DATASET COCO CHO YOLOV8")
+    logger.info("=" * 60)
 
     validate_paths()
     create_output_directories()
@@ -318,10 +323,10 @@ def main() -> None:
     train_data = load_coco_json(COCO_TRAIN_JSON)
     val_data = load_coco_json(COCO_VAL_JSON)
 
-    print("\nĐang lọc annotation train...")
+    logger.info("\nĐang lọc annotation train...")
     train_records = prepare_coco_records(train_data)
 
-    print("Đang lọc annotation validation...")
+    logger.info("Đang lọc annotation validation...")
     val_records = prepare_coco_records(val_data)
 
     random.shuffle(train_records)
@@ -333,7 +338,7 @@ def main() -> None:
     valid_records = val_records[:split_index]
     test_records = val_records[split_index:]
 
-    print("\nĐang copy tập train...")
+    logger.info("\nĐang copy tập train...")
     train_count = copy_records_to_split(
         records=train_records,
         source_images_directory=COCO_TRAIN_IMAGES,
@@ -341,7 +346,7 @@ def main() -> None:
         max_images=MAX_TRAIN_IMAGES,
     )
 
-    print("Đang copy tập validation...")
+    logger.info("Đang copy tập validation...")
     valid_count = copy_records_to_split(
         records=valid_records,
         source_images_directory=COCO_VAL_IMAGES,
@@ -349,7 +354,7 @@ def main() -> None:
         max_images=MAX_VAL_IMAGES,
     )
 
-    print("Đang copy tập test...")
+    logger.info("Đang copy tập test...")
     test_count = copy_records_to_split(
         records=test_records,
         source_images_directory=COCO_VAL_IMAGES,
@@ -359,15 +364,19 @@ def main() -> None:
 
     write_dataset_yaml()
 
-    print("\n" + "=" * 60)
-    print("HOÀN THÀNH")
-    print("=" * 60)
-    print(f"Số ảnh train:      {train_count}")
-    print(f"Số ảnh validation: {valid_count}")
-    print(f"Số ảnh test:       {test_count}")
-    print(f"Dataset YOLO:      {OUTPUT_ROOT}")
-    print("=" * 60)
+    logger.info("\n" + "=" * 60)
+    logger.info("HOÀN THÀNH")
+    logger.info("=" * 60)
+    logger.info(f"Số ảnh train:      {train_count}")
+    logger.info(f"Số ảnh validation: {valid_count}")
+    logger.info(f"Số ảnh test:       {test_count}")
+    logger.info(f"Dataset YOLO:      {OUTPUT_ROOT}")
+    logger.info("=" * 60)
 
 
 if __name__ == "__main__":
+    # Script chay doc lap: tu lap dat logging de bao cao van hien ra console.
+    from core.logging_config import setup_logging
+
+    setup_logging(level="INFO")
     main()

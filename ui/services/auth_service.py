@@ -30,6 +30,7 @@ from database.exceptions import (
     RepositoryError,
 )
 from config.schema import UIConfig
+from core import messages
 from database.repositories.user_repository import UserRepository
 from utils.password import (
     hash_password,
@@ -43,25 +44,27 @@ logger = logging.getLogger(__name__)
 
 MIN_PASSWORD_LENGTH = UIConfig.min_password_length
 
-MSG_MISSING_CREDENTIALS = "Vui lòng nhập tên đăng nhập và mật khẩu."
-MSG_WRONG_CREDENTIALS = "Sai tên đăng nhập hoặc mật khẩu."
-MSG_LOGIN_OK = "Đăng nhập thành công."
-MSG_EMPTY_FULLNAME = "Họ và tên không được để trống."
-MSG_EMPTY_USERNAME = "Tên đăng nhập không được để trống."
-MSG_SHORT_PASSWORD = (
-    f"Mật khẩu phải có ít nhất {MIN_PASSWORD_LENGTH} ký tự."
+# Sprint 7: noi dung thong diep nam trong `core/messages.py`.
+# Cac ten duoi day duoc giu de code va test hien co khong bi vo.
+MSG_MISSING_CREDENTIALS = messages.MSG_MISSING_CREDENTIALS
+MSG_WRONG_CREDENTIALS = messages.MSG_WRONG_CREDENTIALS
+MSG_LOGIN_OK = messages.MSG_LOGIN_OK
+MSG_EMPTY_FULLNAME = messages.MSG_EMPTY_FULLNAME
+MSG_EMPTY_USERNAME = messages.MSG_EMPTY_USERNAME
+MSG_SHORT_PASSWORD = messages.short_password_message(
+    MIN_PASSWORD_LENGTH
 )
-MSG_SHORT_NEW_PASSWORD = (
-    f"Mật khẩu mới phải có ít nhất {MIN_PASSWORD_LENGTH} ký tự."
+MSG_SHORT_NEW_PASSWORD = messages.short_new_password_message(
+    MIN_PASSWORD_LENGTH
 )
-MSG_CONFIRM_MISMATCH = "Mật khẩu xác nhận không khớp."
-MSG_USERNAME_TAKEN = "Tên đăng nhập đã tồn tại."
-MSG_REGISTER_OK = "Tạo tài khoản thành công. Vui lòng đăng nhập."
-MSG_NEED_LOGIN = "Bạn cần đăng nhập để đổi mật khẩu."
-MSG_MISSING_OLD_PASSWORD = "Vui lòng nhập mật khẩu hiện tại."
-MSG_SAME_PASSWORD = "Mật khẩu mới không được trùng mật khẩu cũ."
-MSG_WRONG_OLD_PASSWORD = "Mật khẩu hiện tại không đúng."
-MSG_PASSWORD_CHANGED = "Đổi mật khẩu thành công."
+MSG_CONFIRM_MISMATCH = messages.MSG_CONFIRM_MISMATCH
+MSG_USERNAME_TAKEN = messages.MSG_USERNAME_TAKEN
+MSG_REGISTER_OK = messages.MSG_REGISTER_OK
+MSG_NEED_LOGIN = messages.MSG_NEED_LOGIN
+MSG_MISSING_OLD_PASSWORD = messages.MSG_MISSING_OLD_PASSWORD
+MSG_SAME_PASSWORD = messages.MSG_SAME_PASSWORD
+MSG_WRONG_OLD_PASSWORD = messages.MSG_WRONG_OLD_PASSWORD
+MSG_PASSWORD_CHANGED = messages.MSG_PASSWORD_CHANGED
 
 
 @dataclass(frozen=True)
@@ -152,7 +155,7 @@ class AuthService:
         except RepositoryError as error:
             return self._failure_from(
                 error,
-                "Không thể đăng nhập",
+                messages.PREFIX_LOGIN_FAILED,
             )
 
         if user is None:
@@ -250,7 +253,7 @@ class AuthService:
         except RepositoryError as error:
             return self._failure_from(
                 error,
-                "Không thể tạo tài khoản",
+                messages.PREFIX_REGISTER_FAILED,
             )
 
         return AuthResult(True, MSG_REGISTER_OK)
@@ -292,7 +295,7 @@ class AuthService:
         except RepositoryError as error:
             return self._failure_from(
                 error,
-                "Không thể đổi mật khẩu",
+                messages.PREFIX_CHANGE_PASSWORD_FAILED,
             )
 
         if not verify_password(
@@ -316,7 +319,7 @@ class AuthService:
         except RepositoryError as error:
             return self._failure_from(
                 error,
-                "Không thể đổi mật khẩu",
+                messages.PREFIX_CHANGE_PASSWORD_FAILED,
             )
 
         return AuthResult(True, MSG_PASSWORD_CHANGED)

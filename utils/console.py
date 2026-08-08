@@ -1,4 +1,8 @@
+import logging
 import sys
+
+
+logger = logging.getLogger(__name__)
 
 
 def use_utf8_console() -> None:
@@ -19,6 +23,7 @@ def use_utf8_console() -> None:
             )
 
     except Exception as error:
-        print(
-            f"Không thể thiết lập UTF-8 cho console: {error}"
+        logger.warning(
+            "Khong thiet lap duoc UTF-8 cho console: %s",
+            error,
         )

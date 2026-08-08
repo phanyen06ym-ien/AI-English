@@ -12,6 +12,7 @@ from PySide6.QtCore import (
     Slot,
 )
 
+from core import messages
 from ui.services.history_service import HistoryService
 from ui.state import UiState
 from ui.ui_logger import log_ui_event
@@ -20,8 +21,8 @@ from ui.workers.history_worker import HistoryWorker
 from utils import perf_monitor
 
 
-STATUS_LOGIN_TO_VIEW = "Vui lòng đăng nhập để xem lịch sử."
-STATUS_LOGIN_TO_CLEAR = "Vui lòng đăng nhập để xóa lịch sử."
+STATUS_LOGIN_TO_VIEW = messages.MSG_LOGIN_TO_VIEW_HISTORY
+STATUS_LOGIN_TO_CLEAR = messages.MSG_LOGIN_TO_CLEAR_HISTORY
 
 
 class HistoryModel(QAbstractListModel):
@@ -196,7 +197,7 @@ class HistoryViewModel(BaseViewModel):
         self._model.set_rows(rows)
         self.HistoryUpdated.emit(rows)
         self.set_status(
-            f"Đã tải {len(rows)} bản ghi."
+            messages.history_loaded_message(len(rows))
         )
 
     def _on_failed(

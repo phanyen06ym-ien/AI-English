@@ -6,6 +6,7 @@ import logging
 from pathlib import Path
 
 from config import load_config
+from core.logging_config import setup_from_app_config
 
 # Cau hinh phai duoc doc TRUOC khi import PySide6: style cua Qt Quick chi doc
 # bien moi truong mot lan luc nap thu vien.
@@ -56,15 +57,10 @@ def run(
         else APP_CONFIG
     )
 
-    logging.basicConfig(
-        level=getattr(
-            logging,
-            app_config.logging.level,
-            logging.INFO,
-        )
-    )
+    # Sprint 7: logger phan cap + file xoay vong + che du lieu nhay cam.
+    setup_from_app_config(app_config)
 
-    logging.getLogger(__name__).info(
+    logging.getLogger("ui.bootstrap").info(
         "Khoi dong voi cau hinh: %s",
         app_config.summary(),
     )
