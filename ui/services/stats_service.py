@@ -9,11 +9,13 @@ from __future__ import annotations
 from collections import Counter
 from typing import Any
 
+from config.schema import HistoryConfig
+
 
 DEFAULT_CATEGORY = "Unknown"
 
-#: So ban ghi toi da dung de tinh thong ke.
-STATS_HISTORY_LIMIT = 500
+#: So ban ghi toi da dung de tinh thong ke (gia tri mac dinh).
+STATS_HISTORY_LIMIT = HistoryConfig.stats_limit
 
 EMPTY_STATS: dict[str, Any] = {
     "totalDetections": 0,
@@ -85,18 +87,32 @@ class StatsService:
     def __init__(
         self,
         history_service,
+        config: HistoryConfig | None = None,
     ) -> None:
         self._history_service = history_service
+        self._config = (
+            config
+            if config is not None
+            else HistoryConfig()
+        )
+
+    @property
+    def stats_limit(self) -> int:
+        return self._config.stats_limit
 
     def compute_for_user(
         self,
         user_id: int | None,
-        limit: int = STATS_HISTORY_LIMIT,
+        limit: int | None = None,
     ) -> dict[str, Any]:
         """Tinh thong ke cho mot nguoi dung."""
         rows = self._history_service.load_rows(
             user_id,
-            limit=limit,
+            limit=(
+                limit
+                if limit is not None
+                else self._config.stats_limit
+            ),
         )
 
         return compute_statistics(rows)

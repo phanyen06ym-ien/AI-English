@@ -1,0 +1,22 @@
+# AI-English - Cong cu danh cho lap trinh vien
+#
+# KHONG can thiet de chay ung dung. Chi cai tren may phat trien.
+#
+# Cai dat:
+#     pip install -r requirements.txt
+#     pip install -r requirements-dev.txt
+
+-r requirements.txt
+
+# --- Kiem thu ---
+# Bo test hien chay bang `unittest` co san cua Python nen khong bat buoc pytest.
+# Cai them de chay nhanh hon va do do phu (Sprint 8).
+pytest==8.4.2
+pytest-cov==7.0.0
+
+# --- Do hieu nang ---
+# `utils/perf_monitor.py` dung neu co, khong co van chay binh thuong.
+psutil==7.1.3
+
+# --- Chat luong ma nguon ---
+ruff==0.14.4

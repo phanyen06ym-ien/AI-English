@@ -34,9 +34,11 @@ from __future__ import annotations
 
 import threading
 
+from config.schema import CameraConfig
+
 
 #: So frame toi da duoc phep "dang bay" giua worker va GUI.
-DEFAULT_MAX_IN_FLIGHT = 2
+DEFAULT_MAX_IN_FLIGHT = CameraConfig.max_frames_in_flight
 
 
 class FrameGate:

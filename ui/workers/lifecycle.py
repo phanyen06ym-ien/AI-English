@@ -33,6 +33,7 @@ from enum import Enum
 
 from PySide6.QtCore import QThread, Signal
 
+from config.schema import ThreadConfig
 from ui.ui_logger import get_ui_logger
 from ui.workers.cancellation import (
     CancellationToken,
@@ -40,8 +41,8 @@ from ui.workers.cancellation import (
 )
 
 
-#: Thoi gian cho mac dinh khi dung mot worker (ms).
-DEFAULT_DISPOSE_TIMEOUT_MS = 3000
+#: Thoi gian cho mac dinh khi dung mot worker (ms) - lay tu `ThreadConfig`.
+DEFAULT_DISPOSE_TIMEOUT_MS = ThreadConfig.dispose_timeout_ms
 
 
 class WorkerState(str, Enum):

@@ -22,21 +22,24 @@ from __future__ import annotations
 import logging
 from typing import Any
 
+from config.schema import AIConfig, HistoryConfig
 from database.entities import HistoryEntry
 from database.exceptions import RepositoryError
 from database.repositories.history_repository import HistoryRepository
-from utils.config import CONFIDENCE
 from utils import perf_monitor
 
 
 logger = logging.getLogger(__name__)
 
 
-#: Khoang thoi gian toi thieu giua 2 lan luu cung mot tu (giay).
-HISTORY_COOLDOWN_SECONDS = 5.0
+#: Gia tri mac dinh - lay tu `HistoryConfig` de chi co MOT nguon su that.
+HISTORY_COOLDOWN_SECONDS = HistoryConfig.cooldown_seconds
 
 #: So ban ghi toi da cho man hinh lich su.
-HISTORY_PAGE_LIMIT = 200
+HISTORY_PAGE_LIMIT = HistoryConfig.page_limit
+
+#: Nguong confidence toi thieu de ghi lich su.
+CONFIDENCE = AIConfig.confidence
 
 DEFAULT_CATEGORY = "Unknown"
 DATETIME_FORMAT = "%d/%m/%Y %H:%M"
@@ -47,6 +50,18 @@ class HistoryRecordPolicy:
 
     Tach ra khoi `WebcamThread` tu Sprint 3 de Worker khong con giu business rule.
     """
+
+    @classmethod
+    def from_config(
+        cls,
+        ai_config: AIConfig,
+        history_config: HistoryConfig,
+    ) -> "HistoryRecordPolicy":
+        """Tao luat tu cau hinh thay vi tu hang so module."""
+        return cls(
+            min_confidence=ai_config.confidence,
+            cooldown_seconds=history_config.cooldown_seconds,
+        )
 
     def __init__(
         self,
@@ -149,16 +164,30 @@ class HistoryService:
     def __init__(
         self,
         repository: HistoryRepository | None = None,
+        config: HistoryConfig | None = None,
     ) -> None:
+        self._config = (
+            config
+            if config is not None
+            else HistoryConfig()
+        )
         self._repository = (
             repository
             if repository is not None
-            else HistoryRepository()
+            else HistoryRepository(config=self._config)
         )
 
     @property
     def repository(self) -> HistoryRepository:
         return self._repository
+
+    @property
+    def config(self) -> HistoryConfig:
+        return self._config
+
+    @property
+    def page_limit(self) -> int:
+        return self._config.page_limit
 
     # ------------------------------------------------------------------
     # Ghi - best effort, khong lam hong luong nhan dien
@@ -218,19 +247,23 @@ class HistoryService:
     def load_entries(
         self,
         user_id: int | None,
-        limit: int = HISTORY_PAGE_LIMIT,
+        limit: int | None = None,
     ) -> list[HistoryEntry]:
         """Doc lich su duoi dang entity co dinh kieu."""
         with perf_monitor.timer("history_service_load"):
             return self._repository.list_by_user(
                 user_id=user_id,
-                limit=limit,
+                limit=(
+                    limit
+                    if limit is not None
+                    else self._config.page_limit
+                ),
             )
 
     def load_rows(
         self,
         user_id: int | None,
-        limit: int = HISTORY_PAGE_LIMIT,
+        limit: int | None = None,
     ) -> list[dict[str, Any]]:
         """Doc lich su duoi dang dict (dinh dang tang tren dang dung)."""
         return [
@@ -244,7 +277,7 @@ class HistoryService:
     def load_formatted_rows(
         self,
         user_id: int | None,
-        limit: int = HISTORY_PAGE_LIMIT,
+        limit: int | None = None,
     ) -> list[dict[str, Any]]:
         """Doc lich su va format san cho View."""
         return format_history_rows(

@@ -19,6 +19,7 @@ import cv2
 from PySide6.QtCore import Signal
 from PySide6.QtGui import QImage
 
+from config.schema import AIConfig, CameraConfig, HistoryConfig, ThreadConfig
 from ui.qt_utils import to_qimage
 from ui.services.detection_service import DetectionService
 from ui.services.history_service import (
@@ -37,12 +38,13 @@ from ui.workers.lifecycle import (
 from utils import perf_monitor
 
 
-INFERENCE_INTERVAL_SECONDS = 0.25
-HISTORY_QUEUE_MAX_SIZE = 20
+#: Gia tri mac dinh - lay tu cau hinh de chi co MOT nguon su that.
+INFERENCE_INTERVAL_SECONDS = CameraConfig.inference_interval_seconds
+HISTORY_QUEUE_MAX_SIZE = HistoryConfig.write_queue_size
 STOP_WAIT_MS = DEFAULT_DISPOSE_TIMEOUT_MS
 
 #: Chu ky kiem tra co huy khi hang doi lich su dang trong (giay).
-HISTORY_POLL_SECONDS = 0.1
+HISTORY_POLL_SECONDS = ThreadConfig.poll_interval_seconds
 
 ERROR_CAMERA_OPEN = "Không mở được webcam."
 STATUS_CAMERA_RUNNING = "Webcam đang hoạt động."
@@ -62,6 +64,8 @@ class HistoryWriterWorker(ManagedWorker):
         self,
         history_service: HistoryService,
         token: CancellationToken | None = None,
+        queue_size: int = HISTORY_QUEUE_MAX_SIZE,
+        poll_interval_seconds: float = HISTORY_POLL_SECONDS,
         parent=None,
     ) -> None:
         super().__init__(
@@ -71,8 +75,10 @@ class HistoryWriterWorker(ManagedWorker):
         )
 
         self._history_service = history_service
+        self._queue_size = max(1, int(queue_size))
+        self._poll_interval_seconds = float(poll_interval_seconds)
         self._queue: queue.Queue = queue.Queue(
-            maxsize=HISTORY_QUEUE_MAX_SIZE
+            maxsize=self._queue_size
         )
 
     def enqueue(
@@ -142,7 +148,7 @@ class HistoryWriterWorker(ManagedWorker):
         Huy khong duoc lam **mat** du lieu nguoi dung da tao ra. So luot duoc
         chan tren bang kich thuoc hang doi nen buoc nay luon ket thuc.
         """
-        for _ in range(HISTORY_QUEUE_MAX_SIZE):
+        for _ in range(self._queue_size):
             try:
                 item = self._queue.get_nowait()
             except queue.Empty:
@@ -160,7 +166,7 @@ class HistoryWriterWorker(ManagedWorker):
         while not self.token.is_cancelled:
             try:
                 item = self._queue.get(
-                    timeout=HISTORY_POLL_SECONDS
+                    timeout=self._poll_interval_seconds
                 )
             except queue.Empty:
                 continue
@@ -187,14 +193,42 @@ class WebcamWorker(ManagedWorker):
         user_id: int | None = None,
         history_service: HistoryService | None = None,
         capture_factory=None,
-        max_frames_in_flight: int = DEFAULT_MAX_IN_FLIGHT,
+        max_frames_in_flight: int | None = None,
         token: CancellationToken | None = None,
+        camera_config: CameraConfig | None = None,
+        history_config: HistoryConfig | None = None,
+        ai_config: AIConfig | None = None,
+        thread_config: ThreadConfig | None = None,
         parent=None,
     ) -> None:
         super().__init__(
             "webcam_worker",
             token=token,
             parent=parent,
+        )
+
+        self._camera_config = (
+            camera_config
+            if camera_config is not None
+            else CameraConfig()
+        )
+        self._history_config = (
+            history_config
+            if history_config is not None
+            else HistoryConfig()
+        )
+        self._ai_config = (
+            ai_config
+            if ai_config is not None
+            else AIConfig()
+        )
+        self._thread_config = (
+            thread_config
+            if thread_config is not None
+            else ThreadConfig()
+        )
+        self._inference_interval_seconds = (
+            self._camera_config.inference_interval_seconds
         )
 
         self._detection_service = detection_service
@@ -215,9 +249,16 @@ class WebcamWorker(ManagedWorker):
         self._last_inference_at = 0.0
         self._last_primary_word = ""
         self._last_results: list[dict] = []
-        self._policy = HistoryRecordPolicy()
+        self._policy = HistoryRecordPolicy.from_config(
+            self._ai_config,
+            self._history_config,
+        )
         self._history_writer: HistoryWriterWorker | None = None
-        self._frame_gate = FrameGate(max_frames_in_flight)
+        self._frame_gate = FrameGate(
+            max_frames_in_flight
+            if max_frames_in_flight is not None
+            else self._camera_config.max_frames_in_flight
+        )
 
     # ------------------------------------------------------------------
     # Backpressure
@@ -260,7 +301,11 @@ class WebcamWorker(ManagedWorker):
             return
 
         self._history_writer = HistoryWriterWorker(
-            self._history_service
+            self._history_service,
+            queue_size=self._history_config.write_queue_size,
+            poll_interval_seconds=(
+                self._thread_config.poll_interval_seconds
+            ),
         )
         self._history_writer.historySaved.connect(
             self.historySaved
@@ -271,7 +316,9 @@ class WebcamWorker(ManagedWorker):
         if self._history_writer is None:
             return
 
-        self._history_writer.dispose(STOP_WAIT_MS)
+        self._history_writer.dispose(
+            self._thread_config.dispose_timeout_ms
+        )
         self._history_writer = None
 
     def _record_history(
@@ -420,7 +467,7 @@ class WebcamWorker(ManagedWorker):
 
                 if (
                     now - self._last_inference_at
-                    >= INFERENCE_INTERVAL_SECONDS
+                    >= self._inference_interval_seconds
                 ):
                     self._last_inference_at = now
                     self._process_inference(frame, now)

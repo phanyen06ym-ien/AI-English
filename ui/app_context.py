@@ -25,6 +25,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from ai.pipeline import AIEngine
+from config import AppConfig, load_config
+from database import connection as database_connection
 from database.connection import close_pool
 from database.repositories.history_repository import HistoryRepository
 from database.repositories.user_repository import UserRepository
@@ -47,7 +49,6 @@ from ui.viewmodels.webcam_viewmodel import WebcamViewModel
 from ui.vocabulary_controller import VocabularyController
 from ui.workers.task_pool import wait_for_pool
 from ui.webcam_controller import WebcamController
-from utils.config import CAMERA_ID
 
 
 logger = get_ui_logger("app_context")
@@ -57,6 +58,7 @@ logger = get_ui_logger("app_context")
 class AppContext:
     """Giu tham chieu toi moi service, viewmodel va controller."""
 
+    config: AppConfig
     ai_engine: AIEngine
 
     history_service: HistoryService
@@ -86,8 +88,9 @@ class AppContext:
     @classmethod
     def build(
         cls,
+        config: AppConfig | None = None,
         ai_engine: AIEngine | None = None,
-        camera_id: int = CAMERA_ID,
+        camera_id: int | None = None,
         file_picker=None,
         history_service: HistoryService | None = None,
         auth_service: AuthService | None = None,
@@ -98,8 +101,23 @@ class AppContext:
         """Tao day du cay phu thuoc cho GUI.
 
         Moi tham so deu co the inject de test khong can YOLO / camera /
-        database that.
+        database that. `config` la nguon su that duy nhat cho moi tham so.
         """
+        app_config = (
+            config
+            if config is not None
+            else load_config()
+        )
+
+        log_ui_event(
+            logger,
+            "config_loaded",
+            environment=app_config.environment.value,
+        )
+
+        # Tiem cau hinh database truoc khi bat ky repository nao duoc dung.
+        database_connection.configure(app_config.database)
+
         engine = (
             ai_engine
             if ai_engine is not None
@@ -110,13 +128,18 @@ class AppContext:
             history_service
             if history_service is not None
             else HistoryService(
-                repository=history_repository
+                repository=history_repository,
+                config=app_config.history,
             )
         )
-        stats_service = StatsService(history_service)
+        stats_service = StatsService(
+            history_service,
+            config=app_config.history,
+        )
         detection_service = DetectionService(
             engine,
             history_service=history_service,
+            ui_config=app_config.ui,
         )
         auth_service = (
             auth_service
@@ -132,8 +155,12 @@ class AppContext:
             detection_service,
             camera_id=camera_id,
             capture_factory=capture_factory,
+            config=app_config.camera,
         )
-        vocabulary_view_model = VocabularyViewModel(engine)
+        vocabulary_view_model = VocabularyViewModel(
+            engine,
+            config=app_config.ai,
+        )
         history_view_model = HistoryViewModel(history_service)
         statistics_view_model = StatisticsViewModel(stats_service)
         auth_view_model = AuthViewModel(auth_service)
@@ -143,6 +170,7 @@ class AppContext:
             image_controller_kwargs["file_picker"] = file_picker
 
         context = cls(
+            config=app_config,
             ai_engine=engine,
             history_service=history_service,
             stats_service=stats_service,
@@ -249,7 +277,7 @@ class AppContext:
 
     def shutdown(
         self,
-        timeout_ms: int = 3000,
+        timeout_ms: int | None = None,
     ) -> None:
         """Dung moi worker nen truoc khi thoat ung dung.
 
@@ -258,15 +286,21 @@ class AppContext:
         """
         log_ui_event(logger, "app_shutdown")
 
+        timeout = (
+            timeout_ms
+            if timeout_ms is not None
+            else self.config.threads.dispose_timeout_ms
+        )
+
         # 1. Dung moi QThread (Sprint 5: dispose = cancel + wait).
-        self.webcam_view_model.shutdown(timeout_ms)
-        self.image_view_model.shutdown(timeout_ms)
-        self.history_view_model.shutdown(timeout_ms)
-        self.statistics_view_model.shutdown(timeout_ms)
-        self.auth_view_model.shutdown(timeout_ms)
+        self.webcam_view_model.shutdown(timeout)
+        self.image_view_model.shutdown(timeout)
+        self.history_view_model.shutdown(timeout)
+        self.statistics_view_model.shutdown(timeout)
+        self.auth_view_model.shutdown(timeout)
 
         # 2. Cho cac tac vu ngan tren QThreadPool ket thuc (Sprint 5).
-        wait_for_pool(timeout_ms)
+        wait_for_pool(timeout)
 
         # 3. Dong connection pool sau khi moi worker da dung han (Sprint 4).
         close_pool()

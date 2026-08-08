@@ -17,6 +17,7 @@ import cv2
 
 from ai.models import ImageAnalysisResult
 from ai.pipeline import AIEngine
+from config.schema import UIConfig
 from ui.services.annotation_service import (
     AnnotationService,
     build_image_label,
@@ -67,6 +68,7 @@ class DetectionService:
         ai_engine: AIEngine,
         history_service: HistoryService | None = None,
         image_reader: Callable[[str], Any] = cv2.imread,
+        ui_config: UIConfig | None = None,
     ) -> None:
         self.ai_engine = ai_engine
         self.history_service = (
@@ -75,8 +77,17 @@ class DetectionService:
             else HistoryService()
         )
         self._image_reader = image_reader
-        self._image_annotator = AnnotationService.for_image()
-        self._webcam_annotator = AnnotationService.for_webcam()
+        self._ui_config = (
+            ui_config
+            if ui_config is not None
+            else UIConfig()
+        )
+        self._image_annotator = AnnotationService.for_image(
+            self._ui_config
+        )
+        self._webcam_annotator = AnnotationService.for_webcam(
+            self._ui_config
+        )
 
     # ------------------------------------------------------------------
     # Anh tinh

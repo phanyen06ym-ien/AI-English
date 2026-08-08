@@ -29,6 +29,7 @@ from database.exceptions import (
     NotFoundError,
     RepositoryError,
 )
+from config.schema import UIConfig
 from database.repositories.user_repository import UserRepository
 from utils.password import (
     hash_password,
@@ -40,7 +41,7 @@ from utils.password import (
 logger = logging.getLogger(__name__)
 
 
-MIN_PASSWORD_LENGTH = 6
+MIN_PASSWORD_LENGTH = UIConfig.min_password_length
 
 MSG_MISSING_CREDENTIALS = "Vui lòng nhập tên đăng nhập và mật khẩu."
 MSG_WRONG_CREDENTIALS = "Sai tên đăng nhập hoặc mật khẩu."

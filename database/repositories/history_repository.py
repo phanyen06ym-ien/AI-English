@@ -9,13 +9,14 @@ tra ve `[]` / `False`. Nho vay tang tren phan biet duoc "khong co du lieu" voi
 
 from __future__ import annotations
 
+from config.schema import HistoryConfig
 from database.entities import HistoryEntry
 from database.repositories.base import BaseRepository
 
 
 #: Gioi han an toan cua cau SELECT - giu nguyen tu Sprint 3.
-MIN_LIMIT = 1
-MAX_LIMIT = 500
+MIN_LIMIT = HistoryConfig.min_query_limit
+MAX_LIMIT = HistoryConfig.max_query_limit
 
 HISTORY_COLUMNS = """
     id,
@@ -73,16 +74,44 @@ SQL_DELETE_BY_USER = """
 
 def clamp_limit(
     limit: int,
+    minimum: int = MIN_LIMIT,
+    maximum: int = MAX_LIMIT,
 ) -> int:
     """Ep gioi han truy van ve khoang an toan."""
     return max(
-        MIN_LIMIT,
-        min(int(limit), MAX_LIMIT),
+        minimum,
+        min(int(limit), maximum),
     )
 
 
 class HistoryRepository(BaseRepository):
     """Truy cap bang `history`."""
+
+    def __init__(
+        self,
+        cursor_factory=None,
+        config: HistoryConfig | None = None,
+    ) -> None:
+        if cursor_factory is None:
+            super().__init__()
+        else:
+            super().__init__(cursor_factory=cursor_factory)
+
+        self._config = (
+            config
+            if config is not None
+            else HistoryConfig()
+        )
+
+    def _clamp(
+        self,
+        limit: int,
+    ) -> int:
+        return clamp_limit(
+            limit,
+            self._config.min_query_limit,
+            self._config.max_query_limit,
+        )
 
     def add(
         self,
@@ -132,7 +161,7 @@ class HistoryRepository(BaseRepository):
         limit: int = 100,
     ) -> list[HistoryEntry]:
         """Doc lich su. `user_id=None` nghia la lay toan bo."""
-        safe_limit = clamp_limit(limit)
+        safe_limit = self._clamp(limit)
 
         if user_id is None:
             rows = self.fetch_all(

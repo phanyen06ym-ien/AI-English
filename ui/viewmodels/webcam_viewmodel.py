@@ -13,7 +13,7 @@ from ui.workers.webcam_worker import (
     STATUS_CAMERA_STOPPED,
     WebcamWorker,
 )
-from utils.config import CAMERA_ID
+from config.schema import CameraConfig
 
 
 class WebcamViewModel(BaseViewModel):
@@ -30,14 +30,24 @@ class WebcamViewModel(BaseViewModel):
     def __init__(
         self,
         detection_service: DetectionService,
-        camera_id: int = CAMERA_ID,
+        camera_id: int | None = None,
         capture_factory=None,
+        config: CameraConfig | None = None,
         parent=None,
     ) -> None:
         super().__init__("webcam_viewmodel", parent)
 
         self._detection_service = detection_service
-        self._camera_id = camera_id
+        self._config = (
+            config
+            if config is not None
+            else CameraConfig()
+        )
+        self._camera_id = (
+            camera_id
+            if camera_id is not None
+            else self._config.camera_id
+        )
         self._capture_factory = capture_factory
         self._worker: WebcamWorker | None = None
         self._running = False
@@ -95,6 +105,7 @@ class WebcamViewModel(BaseViewModel):
             self._camera_id,
             self.user_id,
             capture_factory=self._capture_factory,
+            camera_config=self._config,
         )
         self._worker.frameReady.connect(
             self._on_frame_ready

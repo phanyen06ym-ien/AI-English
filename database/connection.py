@@ -33,6 +33,7 @@ import psycopg2
 from psycopg2 import pool as psycopg2_pool
 from dotenv import load_dotenv
 
+from config.schema import DatabaseConfig
 from database.exceptions import (
     ConnectionFailedError,
     IntegrityError,
@@ -44,35 +45,64 @@ from utils import perf_monitor
 load_dotenv()
 
 
-#: So ket noi toi thieu giu san trong pool.
-POOL_MIN_CONNECTIONS = 1
+#: So ket noi toi thieu giu san trong pool (gia tri mac dinh).
+POOL_MIN_CONNECTIONS = DatabaseConfig.pool_min_connections
 
 #: So ket noi toi da. Du cho GUI thread + cac worker cua Sprint 3.
-POOL_MAX_CONNECTIONS = 8
+POOL_MAX_CONNECTIONS = DatabaseConfig.pool_max_connections
 
 
 _pool: psycopg2_pool.ThreadedConnectionPool | None = None
 _pool_lock = threading.Lock()
 _pool_disabled = False
 
+#: Cau hinh dang dung. Sprint 6: `AppContext` tiem vao luc khoi dong.
+_config: DatabaseConfig | None = None
+
+
+def configure(
+    config: DatabaseConfig,
+) -> None:
+    """Dat cau hinh database. Goi mot lan tu `AppContext.build()`.
+
+    Doi cau hinh se dong pool cu de lan sau mo lai voi tham so moi.
+    """
+    global _config
+
+    if _config == config:
+        return
+
+    close_pool()
+    _config = config
+
+
+def current_config() -> DatabaseConfig:
+    """Cau hinh dang dung. Chua tiem thi doc thang tu bien moi truong."""
+    if _config is not None:
+        return _config
+
+    return DatabaseConfig(
+        host=os.getenv("DB_HOST") or "",
+        port=os.getenv("DB_PORT") or "5432",
+        name=os.getenv("DB_NAME") or "postgres",
+        user=os.getenv("DB_USER") or "postgres",
+        password=os.getenv("DB_PASSWORD") or "",
+    )
+
 
 def connection_parameters() -> dict[str, str | None]:
-    """Doc tham so ket noi tu bien moi truong. Khong doi so voi Sprint 3."""
-    return {
-        "host": os.getenv("DB_HOST"),
-        "database": os.getenv("DB_NAME"),
-        "user": os.getenv("DB_USER"),
-        "password": os.getenv("DB_PASSWORD"),
-        "port": os.getenv("DB_PORT"),
-    }
+    """Tham so ket noi. Khong doi so voi Sprint 4."""
+    return current_config().connection_parameters()
 
 
 def _create_pool() -> psycopg2_pool.ThreadedConnectionPool:
+    config = current_config()
+
     with perf_monitor.timer("db_create_pool"):
         return psycopg2_pool.ThreadedConnectionPool(
-            POOL_MIN_CONNECTIONS,
-            POOL_MAX_CONNECTIONS,
-            **connection_parameters(),
+            config.pool_min_connections,
+            config.pool_max_connections,
+            **config.connection_parameters(),
         )
 
 
@@ -246,6 +276,8 @@ __all__ = [
     "POOL_MIN_CONNECTIONS",
     "POOL_MAX_CONNECTIONS",
     "close_pool",
+    "configure",
+    "current_config",
     "connection_parameters",
     "database_cursor",
     "get_connection",

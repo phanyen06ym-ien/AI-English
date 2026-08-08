@@ -1,18 +1,45 @@
+# AI-English - Thu vien chay ung dung
+#
+# Phien ban duoc GHIM (Sprint 6). Truoc do chi `ultralytics` duoc ghim, cac thu
+# vien con lai cai ban moi nhat - hai may cai cach nhau vai thang co the chay
+# hai phien ban scikit-learn khac nhau, lam model .pkl khong nap duoc.
+#
+# Phien ban duoi day la phien ban da duoc kiem thu voi 226 unit test.
+#
+# Cai dat:
+#     pip install -r requirements.txt
+#
+# Them cong cu phat trien:
+#     pip install -r requirements-dev.txt
+
+# --- Thi giac may tinh / AI ---
 ultralytics==8.4.72
-torch
-torchvision
-opencv-python
-numpy
-scikit-learn
-matplotlib
-pillow
-joblib
-python-dotenv
-pyttsx3
-gTTS
+torch==2.12.1
+torchvision==0.27.1
+opencv-python==4.12.0.88
+numpy==2.1.2
+
+# --- Hoc may ---
+scikit-learn==1.9.0
+joblib==1.4.2
+
+# --- Giao dien ---
+PySide6==6.11.1
+pillow==11.3.0
+
+# --- Co so du lieu ---
+psycopg2-binary==2.9.12
+bcrypt==5.0.0
+
+# --- Cau hinh ---
+python-dotenv==1.2.2
+
+# --- Am thanh / dich ---
+gTTS==2.5.4
+pyttsx3==2.99
 googletrans==4.0.0rc1
-psycopg2-binary
-pandas
-openpyxl
-PySide6
-bcrypt
+
+# --- Bao cao / phan tich ---
+matplotlib==3.10.8
+pandas==3.0.1
+openpyxl==3.1.5

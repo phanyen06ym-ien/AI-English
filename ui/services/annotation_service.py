@@ -16,15 +16,16 @@ from typing import Any, Iterable
 
 import cv2
 
+from config.schema import UIConfig
 from utils import perf_monitor
 from utils.helper import draw_vietnamese_text
 
 
-IMAGE_BOX_COLOR = (0, 255, 0)
-IMAGE_LABEL_SIZE = 28
+IMAGE_BOX_COLOR = UIConfig.image_box_color
+IMAGE_LABEL_SIZE = UIConfig.image_label_size
 
-WEBCAM_BOX_COLOR = (0, 180, 0)
-WEBCAM_LABEL_SIZE = 24
+WEBCAM_BOX_COLOR = UIConfig.webcam_box_color
+WEBCAM_LABEL_SIZE = UIConfig.webcam_label_size
 
 LABEL_Y_OFFSET = 35
 LABEL_Y_MIN = 5
@@ -109,17 +110,27 @@ class AnnotationService:
         return frame
 
     @classmethod
-    def for_image(cls) -> "AnnotationService":
+    def for_image(
+        cls,
+        config: UIConfig | None = None,
+    ) -> "AnnotationService":
         """Cau hinh mau/size dung cho anh tinh."""
+        resolved = config if config is not None else UIConfig()
+
         return cls(
-            box_color=IMAGE_BOX_COLOR,
-            label_size=IMAGE_LABEL_SIZE,
+            box_color=resolved.image_box_color,
+            label_size=resolved.image_label_size,
         )
 
     @classmethod
-    def for_webcam(cls) -> "AnnotationService":
+    def for_webcam(
+        cls,
+        config: UIConfig | None = None,
+    ) -> "AnnotationService":
         """Cau hinh mau/size dung cho webcam."""
+        resolved = config if config is not None else UIConfig()
+
         return cls(
-            box_color=WEBCAM_BOX_COLOR,
-            label_size=WEBCAM_LABEL_SIZE,
+            box_color=resolved.webcam_box_color,
+            label_size=resolved.webcam_label_size,
         )

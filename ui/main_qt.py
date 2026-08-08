@@ -5,9 +5,15 @@ import sys
 import logging
 from pathlib import Path
 
+from config import load_config
+
+# Cau hinh phai duoc doc TRUOC khi import PySide6: style cua Qt Quick chi doc
+# bien moi truong mot lan luc nap thu vien.
+APP_CONFIG = load_config()
+
 os.environ.setdefault(
     "QT_QUICK_CONTROLS_STYLE",
-    "Basic",
+    APP_CONFIG.ui.qt_quick_style,
 )
 
 import PySide6
@@ -38,23 +44,37 @@ from ui.app_context import AppContext
 from ui.video_item import VideoItem
 
 
-QML_DIR = (
-    Path(__file__)
-    .resolve()
-    .parent
-    / "qml"
-)
+QML_DIR = APP_CONFIG.paths.qml_dir
 
 
-def run() -> None:
-    logging.basicConfig(level=logging.INFO)
+def run(
+    config=None,
+) -> None:
+    app_config = (
+        config
+        if config is not None
+        else APP_CONFIG
+    )
+
+    logging.basicConfig(
+        level=getattr(
+            logging,
+            app_config.logging.level,
+            logging.INFO,
+        )
+    )
+
+    logging.getLogger(__name__).info(
+        "Khoi dong voi cau hinh: %s",
+        app_config.summary(),
+    )
 
     app = QApplication(
         sys.argv
     )
 
     app.setApplicationName(
-        "AI-English"
+        app_config.ui.application_name
     )
 
     qmlRegisterType(
@@ -66,7 +86,7 @@ def run() -> None:
     )
 
     try:
-        context = AppContext.build()
+        context = AppContext.build(config=app_config)
 
     except Exception as error:
         logging.getLogger(__name__).exception(
@@ -92,7 +112,7 @@ def run() -> None:
     engine.load(
         QUrl.fromLocalFile(
             str(
-                QML_DIR / "Main.qml"
+                app_config.paths.qml_dir / "Main.qml"
             )
         )
     )

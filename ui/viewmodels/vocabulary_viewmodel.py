@@ -13,12 +13,13 @@ from PySide6.QtCore import (
 )
 
 from ai.pipeline import AIEngine
+from config.schema import AIConfig
 from ui.state import UiState
 from ui.ui_logger import log_ui_event
 from ui.viewmodels.base_viewmodel import BaseViewModel
 
 
-RELATED_WORDS_COUNT = 3
+RELATED_WORDS_COUNT = AIConfig.related_words_count
 
 
 class VocabularyModel(QAbstractListModel):
@@ -116,11 +117,17 @@ class VocabularyViewModel(BaseViewModel):
     def __init__(
         self,
         ai_engine: AIEngine,
+        config: AIConfig | None = None,
         parent=None,
     ) -> None:
         super().__init__("vocabulary_viewmodel", parent)
 
         self._ai_engine = ai_engine
+        self._config = (
+            config
+            if config is not None
+            else AIConfig()
+        )
 
         vocabulary = self._ai_engine.get_vocabulary_entries()
 
@@ -141,7 +148,7 @@ class VocabularyViewModel(BaseViewModel):
 
         words = self._ai_engine.get_related_word_dicts(
             word,
-            n=RELATED_WORDS_COUNT,
+            n=self._config.related_words_count,
         )
 
         self.RelatedWordsUpdated.emit(words)
