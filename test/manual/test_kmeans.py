@@ -20,7 +20,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
 
 
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
+PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 DATA_PATH = PROJECT_ROOT / "dataset" / "vocabulary.csv"
 MODEL_PATH = PROJECT_ROOT / "models" / "kmeans.pkl"
 RESULT_DIR = PROJECT_ROOT / "docs" / "experiment_results"

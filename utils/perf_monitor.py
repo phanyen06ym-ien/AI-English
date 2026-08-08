@@ -22,10 +22,37 @@ except Exception:  # pragma: no cover - optional runtime dependency
     psutil = None
 
 
-try:
-    import torch
-except Exception:  # pragma: no cover - optional runtime dependency
-    torch = None
+# Sprint 8: KHONG import torch o cap module.
+#
+# Truoc Sprint 8, dong `import torch` o day ton **1.800 ms** moi lan khoi dong,
+# chi de bao mot dong `torch_cuda_available=...` ma theo mac dinh khong ai thay
+# (do hieu nang chi bat khi AI_ENGLISH_PERF=1).
+#
+# Gio chi nap khi that su can, va chi khi tinh nang do dang bat.
+_torch = None
+_torch_checked = False
+
+
+def _load_torch():
+    """Nap torch mot lan, chi khi do hieu nang dang bat."""
+    global _torch, _torch_checked
+
+    if _torch_checked:
+        return _torch
+
+    _torch_checked = True
+
+    if not ENABLED:
+        return None
+
+    try:
+        import torch as torch_module
+
+        _torch = torch_module
+    except Exception:  # pragma: no cover - optional runtime dependency
+        _torch = None
+
+    return _torch
 
 
 _lock = threading.Lock()
@@ -49,6 +76,8 @@ def start() -> None:
 
 
 def cuda_available() -> bool:
+    torch = _load_torch()
+
     return bool(
         torch is not None
         and getattr(torch, "cuda", None) is not None
@@ -58,7 +87,7 @@ def cuda_available() -> bool:
 
 def cuda_synchronize() -> None:
     if cuda_available():
-        torch.cuda.synchronize()
+        _load_torch().cuda.synchronize()
 
 
 @contextmanager

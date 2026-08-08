@@ -8,7 +8,7 @@ from typing import Any
 import pandas as pd
 
 
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
+PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 DATA_PATH = PROJECT_ROOT / "dataset" / "vocabulary.csv"
 RESULT_DIR = PROJECT_ROOT / "docs" / "experiment_results"
 DETAIL_PATH = RESULT_DIR / "knn_test_details.csv"

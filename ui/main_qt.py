@@ -118,6 +118,10 @@ def run(
             "Không tải được Main.qml."
         )
 
+    # Sprint 8: cua so da hien ra -> gio moi nap AI, tren thread nen.
+    # Truoc Sprint 8, ~10 giay nay nam TRUOC dong `engine.load()` o tren.
+    context.warmup()
+
     sys.exit(
         app.exec()
     )

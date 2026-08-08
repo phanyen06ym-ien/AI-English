@@ -153,3 +153,5 @@ models/*.onnx
 Thumbs.db
 desktop.ini
 .DS_Store
+# Sprint 8: bao cao do phu HTML
+docs/coverage/

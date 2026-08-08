@@ -24,7 +24,12 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from ai.pipeline import AIEngine
+# Sprint 8: KHONG import `ai.*` o cap module.
+# `ai/__init__.py` nap san `ObjectDetector` nen bat ky import nao tu `ai.*`
+# cung keo theo torch + ultralytics + sklearn (~6,6 giay). Chi can kieu de
+# chu thich thi dung TYPE_CHECKING; cho nao dung that su thi import trong ham.
+from typing import TYPE_CHECKING
+
 from config import AppConfig, load_config
 from database import connection as database_connection
 from database.connection import close_pool
@@ -33,6 +38,10 @@ from database.repositories.user_repository import UserRepository
 from ui.auth_controller import AuthController
 from ui.history_controller import HistoryController
 from ui.image_controller import ImageController
+from ui.services.ai_bootstrap import (
+    LazyAIEngineParts,
+    build_lazy_ai_engine,
+)
 from ui.services.auth_service import AuthService
 from ui.services.detection_service import DetectionService
 from ui.services.dialog_service import DialogService
@@ -48,7 +57,12 @@ from ui.viewmodels.vocabulary_viewmodel import VocabularyViewModel
 from ui.viewmodels.webcam_viewmodel import WebcamViewModel
 from ui.vocabulary_controller import VocabularyController
 from ui.workers.task_pool import wait_for_pool
+from ui.workers.warmup_worker import WarmupWorker
 from ui.webcam_controller import WebcamController
+
+
+if TYPE_CHECKING:  # pragma: no cover
+    from ai.pipeline import AIEngine
 
 
 logger = get_ui_logger("app_context")
@@ -81,6 +95,14 @@ class AppContext:
     stats_controller: StatsController
     auth_controller: AuthController
 
+    # --- Field co gia tri mac dinh phai nam CUOI trong dataclass ---
+
+    #: Cac phan AI nap tre (Sprint 8). None khi engine duoc tiem san.
+    ai_parts: LazyAIEngineParts | None = None
+
+    #: Worker nap truoc AI (Sprint 8).
+    _warmup_worker: WarmupWorker | None = None
+
     # ------------------------------------------------------------------
     # Lap rap
     # ------------------------------------------------------------------
@@ -89,7 +111,7 @@ class AppContext:
     def build(
         cls,
         config: AppConfig | None = None,
-        ai_engine: AIEngine | None = None,
+        ai_engine: "AIEngine | None" = None,
         camera_id: int | None = None,
         file_picker=None,
         history_service: HistoryService | None = None,
@@ -118,11 +140,14 @@ class AppContext:
         # Tiem cau hinh database truoc khi bat ky repository nao duoc dung.
         database_connection.configure(app_config.database)
 
-        engine = (
-            ai_engine
-            if ai_engine is not None
-            else AIEngine.create_default()
-        )
+        # Sprint 8: KHONG nap AI o day. Nap tre de cua so hien ra ngay,
+        # `warmup()` se nap that su tren thread nen sau do.
+        ai_parts: LazyAIEngineParts | None = None
+
+        if ai_engine is not None:
+            engine = ai_engine
+        else:
+            engine, ai_parts = build_lazy_ai_engine()
 
         history_service = (
             history_service
@@ -160,6 +185,8 @@ class AppContext:
         vocabulary_view_model = VocabularyViewModel(
             engine,
             config=app_config.ai,
+            # Nap tre: `WarmupWorker` day danh sach vao sau.
+            load_on_init=ai_parts is None,
         )
         history_view_model = HistoryViewModel(history_service)
         statistics_view_model = StatisticsViewModel(stats_service)
@@ -172,6 +199,7 @@ class AppContext:
         context = cls(
             config=app_config,
             ai_engine=engine,
+            ai_parts=ai_parts,
             history_service=history_service,
             stats_service=stats_service,
             detection_service=detection_service,
@@ -212,6 +240,43 @@ class AppContext:
     # ------------------------------------------------------------------
     # Phien dang nhap
     # ------------------------------------------------------------------
+
+    # ------------------------------------------------------------------
+    # Nap truoc AI (Sprint 8)
+    # ------------------------------------------------------------------
+
+    def warmup(self) -> WarmupWorker | None:
+        """Nap AI o thread nen. Goi NGAY SAU khi cua so da hien ra.
+
+        Tra ve None neu engine duoc tiem san (test) - luc do khong co gi
+        de nap tre.
+        """
+        if self.ai_parts is None:
+            return None
+
+        if self._warmup_worker is not None:
+            return self._warmup_worker
+
+        log_ui_event(logger, "ai_warmup_started")
+
+        worker = WarmupWorker(self.ai_parts)
+        worker.vocabularyReady.connect(
+            self.vocabulary_view_model.setVocabulary
+        )
+        worker.warmupCompleted.connect(
+            lambda: log_ui_event(logger, "ai_warmup_completed")
+        )
+        worker.failed.connect(
+            lambda message: logger.error(
+                "Nap truoc AI that bai: %s",
+                message,
+            )
+        )
+        worker.start()
+
+        self._warmup_worker = worker
+
+        return worker
 
     def wire_session(self) -> None:
         """Noi su kien doi nguoi dung toi moi ViewModel."""
@@ -293,6 +358,10 @@ class AppContext:
         )
 
         # 1. Dung moi QThread (Sprint 5: dispose = cancel + wait).
+        if self._warmup_worker is not None:
+            self._warmup_worker.dispose(timeout)
+            self._warmup_worker = None
+
         self.webcam_view_model.shutdown(timeout)
         self.image_view_model.shutdown(timeout)
         self.history_view_model.shutdown(timeout)

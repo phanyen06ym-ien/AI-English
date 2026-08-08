@@ -6,8 +6,8 @@
 |---|---|
 | Dự án | AI-English — Ứng dụng học từ vựng tiếng Anh qua nhận diện vật thể |
 | Ngày báo cáo | 08/08/2026 |
-| Phạm vi báo cáo | Quét toàn bộ dự án + tổng hợp thay đổi Sprint 1 → 7 |
-| Trạng thái | Sprint 1 → 7 **HOÀN THÀNH** — 366/366 test PASS |
+| Phạm vi báo cáo | Quét toàn bộ dự án + tổng hợp thay đổi Sprint 1 → 8 |
+| Trạng thái | **TOÀN BỘ 8 SPRINT HOÀN THÀNH** — 392/392 test PASS, độ phủ 85% |
 
 ---
 
@@ -18,20 +18,21 @@ thống dùng **YOLO** nhận diện vật thể, tra **từ vựng Anh–Việt
 liên quan bằng **k-NN** và các từ cùng nhóm chủ đề bằng **K-Means**. Toàn bộ kết
 quả được lưu vào lịch sử để thống kê tiến độ học.
 
-Dự án đã trải qua **7 sprint tái cấu trúc** với một nguyên tắc xuyên suốt:
+Dự án đã trải qua **8 sprint tái cấu trúc** với một nguyên tắc xuyên suốt:
 
 > **Không thay đổi thuật toán AI, không thay đổi Database, không thay đổi giao diện.
 > Chỉ thay đổi cách các tầng nói chuyện với nhau.**
 
-Kết quả sau 7 sprint:
+Kết quả sau 8 sprint:
 
-| Tiêu chí | Trước Sprint 1 | Sau Sprint 7 |
+| Tiêu chí | Trước Sprint 1 | Sau Sprint 8 |
 |---|---|---|
 | Số tầng kiến trúc rõ ràng | 2 (GUI + logic trộn lẫn) | 7 (View → Controller → ViewModel → Worker → Service → Repository → Data) |
 | Business logic trong Controller | Rất nhiều | **0** |
 | SQL trong tầng Service | Có | **0** |
 | Chạy test không cần YOLO/DB/webcam | Không | **Có** |
-| Số unit test tự động | 0 (chỉ script thủ công) | **366 test, PASS 100%** |
+| Số unit test tự động | 0 (chỉ script thủ công) | **392 test, PASS 100%** |
+| Độ phủ kiểm thử | 0% | **85%** |
 | Điểm gọi AI duy nhất | Không có | `AIEngine` |
 | Dòng code Controller | 1.800 | 864 (**−52%**) |
 | Thời gian 1 truy vấn database | 1.092 ms | **400 ms** (nhanh hơn 2,7×) |
@@ -41,6 +42,7 @@ Kết quả sau 7 sprint:
 | Thư viện ghim phiên bản | 1/18 | **18/18** |
 | Lệnh `print()` thay vì logging | 68 | **18** (giữ nguyên có chủ ý trong 2 file AI) |
 | Cây exception thống nhất | Không có | **18 mã lỗi dưới một gốc** |
+| **Thời gian đến khi cửa sổ hiện ra** | **10.067 ms** | **962 ms** (nhanh hơn 10,5×) |
 | Lỗi thread/race đã phát hiện & sửa | — | **5** |
 
 ---
@@ -86,6 +88,7 @@ Kết quả sau 7 sprint:
 | `utils/` | 559 → 646 | Font, speech, mật khẩu, đo hiệu năng | ✅ Sprint 4, 6 |
 | `config/` | 0 → 900 | AppConfig có định kiểu, loader, validate | ✅ Sprint 6 (mới) |
 | `core/` | 0 → 850 | Cây exception, logging, chống rò rỉ, thông điệp | ✅ Sprint 7 (mới) |
+| `test/manual/` | 10 script | Script cần môi trường thật, tách khỏi bộ test tự động | ✅ Sprint 8 (mới) |
 | `test/` | 4.362 | Kiểm thử | ✅ Sprint 3 mở rộng mạnh |
 
 ### 2.4 Luồng nghiệp vụ chính
@@ -402,6 +405,57 @@ ERROR  database.demo  password=***
 chủ ý — xem mục 6). Nội dung mọi thông điệp người dùng giữ nguyên từng ký tự.
 Không một test cũ nào phải sửa.
 
+### 3.8 Sprint 8 — Testing & Performance
+
+**Vấn đề 1 — bộ test làm hỏng dữ liệu.** 7 script trong `test/` có tên `test_*.py`
+nên `pytest` gom và chạy hết. Trong đó `test_knn.py` và `test_kmeans.py` **train
+lại và ghi đè `models/*.pkl`**, còn `test_login.py` có thể tạo dữ liệu thật trong
+bảng `users`. Chạy bộ test là làm thay đổi dự án.
+
+**Vấn đề 2 — khởi động mất 10 giây.** Người dùng bấm chạy rồi nhìn màn hình trắng:
+
+```
+import torch                              2.386 ms
+nạp từ vựng (kéo theo sklearn + pandas)   4.848 ms
+nạp model k-NN                            1.888 ms
+nạp YOLO                                    431 ms
+─────────────────────────────────────────────────
+TỔNG trước khi cửa sổ hiện ra            10.067 ms
+```
+
+Và gần như toàn bộ là **chi phí import thư viện**, không phải tính toán:
+`all_words()` chạy xong trong **0 ms** sau khi module đã nạp.
+
+**Giải pháp:**
+
+```text
+test/          → bộ test tự động (392 test, không cần YOLO/DB/webcam)
+test/manual/   → script cần môi trường thật, pytest KHÔNG gom
+
+AppContext.build()   → nạp trễ, ~0 ms
+cửa sổ hiện ra
+context.warmup()     → nạp AI trên thread nền
+```
+
+**Kết quả đo được:**
+
+| Phép đo | Trước | Sau |
+|---|---:|---:|
+| **Đến khi cửa sổ hiện ra** | **10.067 ms** | **962 ms** (nhanh hơn 10,5×) |
+| Thư viện nặng nạp lúc đó | torch, sklearn, pandas | **không có** |
+| Bộ test tự động | 9,9 giây | 7,8 giây |
+| Nhận diện 1 ảnh | 62 ms | 61 ms (không đổi) |
+| FPS webcam | — | 133,7 |
+
+**Kết quả AI y hệt:** cùng ảnh, cùng 5 vật thể, cùng nhãn, cùng độ tin cậy.
+
+**Chốt chặn chống hồi quy:** `StartupBudgetTest` chạy `import ui.app_context`
+trong một tiến trình sạch rồi kiểm tra `sys.modules`. Nếu ai đó thêm lại một
+import nặng ở cấp module, test đỏ ngay thay vì đợi người dùng than phiền.
+
+**Thêm mới:** `run_tests.py` (một lệnh chạy tất cả), `pytest.ini`, 26 integration
+test, độ phủ **85%**.
+
 ---
 
 ## 4. NĂM LỖI THẬT ĐƯỢC PHÁT HIỆN & SỬA
@@ -472,14 +526,20 @@ hạn mức thì bỏ khung hình mới thay vì xếp thêm.
 | `test_di.py` — Dependency Injection (Sprint 6) | 22 | ✅ PASS |
 | `test_logging.py` — Logging & chống rò rỉ (Sprint 7) | 35 | ✅ PASS |
 | `test_error_handling.py` — Cây exception & error boundary (Sprint 7) | 28 | ✅ PASS |
-| **Tổng** | **366** | **✅ PASS 100%** |
+| `test_integration.py` — Tích hợp & ngưỡng khởi động (Sprint 8) | 26 | ✅ PASS |
+| **Tổng** | **392** | **✅ PASS 100%** |
 
-Bộ test chạy trong **9,88 giây**, **không cần** YOLO, PostgreSQL hay webcam thật.
+Bộ test chạy trong **12,7 giây**, độ phủ **85%**, **không cần** YOLO, PostgreSQL
+hay webcam thật, và **không làm thay đổi `models/*.pkl`**.
 
-Lệnh chạy:
+Lệnh chạy — từ Sprint 8 chỉ còn **một lệnh duy nhất**:
 
 ```bash
-python -m unittest test.test_ai_engine test.test_config test.test_di test.test_repository test.test_database_service test.test_worker test.test_viewmodel test.test_controller test.test_cancellation test.test_thread_safety test.test_logging test.test_error_handling
+python run_tests.py
+```
+
+```bash
+python run_tests.py --coverage
 ```
 
 ### 5.2 Test bảo vệ kiến trúc
@@ -500,6 +560,8 @@ Ngoài test chức năng, dự án có các test **tự động chặn việc ph
 | `NoPrintLeftTest` | Quét 9 package bằng `ast`, không file nào ngoài danh sách miễn trừ được gọi `print()` |
 | `NoSilentSwallowTest` | `except: pass` phải có ghi chú giải thích |
 | `DatabasePasswordNeverLeaksTest` | Mật khẩu không tới được file log |
+| `StartupBudgetTest` | Import tầng GUI không được kéo theo thư viện nặng |
+| `TestSuiteDisciplineTest` | Bộ test tự động không được sửa artifact mô hình |
 
 Nghĩa là: nếu ai đó vô tình đưa business logic ngược vào Controller, **test sẽ đỏ ngay**.
 
@@ -545,10 +607,13 @@ sprint tiếp theo):
 | 9 | ~~Magic number rải rác chưa vào config~~ | — | ✅ Sprint 6 |
 | 10 | ~~68 lệnh `print()` thay vì logging~~ | — | ✅ Sprint 7 (còn 18, giữ có chủ ý) |
 | 11 | ~~Chưa có cây exception thống nhất~~ | — | ✅ Sprint 7 |
-| 12 | Chưa đo độ phủ kiểm thử (coverage) | 🔴 Cao | Sprint 8 |
-| 13 | Chưa đo hiệu năng end-to-end (thời gian nạp YOLO, FPS webcam, RAM) | 🟡 Trung bình | Sprint 8 |
-| 14 | Chưa có test tích hợp và end-to-end — hiện chỉ có unit test | 🟡 Trung bình | Sprint 8 |
-| 15 | `ml/knn.py`, `ml/kmeans.py` còn 18 `print()` — giữ nguyên để bảo toàn cam kết "không sửa AI" | 🟢 Thấp | Tùy chọn |
+| 12 | ~~Chưa đo độ phủ kiểm thử~~ | — | ✅ Sprint 8 (85%) |
+| 13 | ~~Chưa đo hiệu năng end-to-end~~ | — | ✅ Sprint 8 |
+| 14 | ~~Chưa có test tích hợp~~ | — | ✅ Sprint 8 (26 test) |
+| 15 | Model `.pkl` train bằng scikit-learn 1.8.0 nhưng bản ghim là 1.9.0 → train lại mỗi lần khởi động | 🟡 Trung bình | Cần chủ dự án quyết định |
+| 16 | Chưa có CI tự động chạy `run_tests.py` khi push | 🟡 Trung bình | Tùy chọn |
+| 17 | `ml/knn.py`, `ml/kmeans.py` còn 18 `print()` — giữ nguyên để bảo toàn cam kết "không sửa AI" | 🟢 Thấp | Tùy chọn |
+| 18 | QML chưa dùng `dialogService` và các `*ViewModel` đã đăng ký sẵn | 🟢 Thấp | Tùy chọn |
 
 ---
 
@@ -569,25 +634,27 @@ sprint tiếp theo):
 | 5 | Worker & Thread Refactor | ✅ Xong | Giao diện hết treo |
 | 6 | Config & Dependency Injection | ✅ Xong | 23 biến đổi được khi chạy |
 | 7 | Logging & Error Handling | ✅ Xong | Mật khẩu không còn lọt vào log |
-| **8** | **Testing & Performance** | ⏭️ Sprint cuối | Còn ~40% — 366 test đã có |
+| 8 | Testing & Performance | ✅ Xong | Khởi động nhanh hơn 10,5× |
 
-### Vì sao Sprint 8 sẽ thuận lợi
+### Bảy lỗi thật đã phát hiện và sửa
 
-Sáu sprint trước đã chuẩn bị sẵn điểm bám:
+Đều là lỗi có sẵn trong mã nguồn, tìm ra trong quá trình tái cấu trúc:
 
-1. **366 test** đã chia theo tầng, chạy 9,88 giây, không cần YOLO/database/webcam.
-2. `requirements-dev.txt` đã ghim sẵn `pytest`, `pytest-cov`, `psutil` — cài là
-   đo được độ phủ ngay.
-3. Đã có 2 script benchmark từ Sprint 4 và 5 (`benchmark_database.py`,
-   `benchmark_thread.py`) làm mẫu.
-4. `utils/perf_monitor.py` đã ghi qua logger, bật bằng `AI_ENGLISH_PERF=1` — số
-   liệu hiệu năng giờ vào được file log.
+| # | Lỗi | Sprint |
+|---|---|---|
+| 1 | Race condition làm treo luồng webcam | 3 |
+| 2 | QThread bị hủy khi còn đang chạy lúc thoát ứng dụng | 3 |
+| 3 | Giao diện đứng 3 giây khi tắt camera | 3 |
+| 4 | `HistoryWriterWorker` treo vĩnh viễn khi hàng đợi đầy | 5 |
+| 5 | Hàng đợi khung hình phình không giới hạn | 5 |
+| 6 | Thứ tự mẫu che làm **lọt token** ra log | 7 |
+| 7 | Che trước khi định dạng làm **mất bản ghi log** | 7 |
 
 ---
 
 ## 8. KẾT LUẬN
 
-Sau bảy sprint, dự án AI-English đã chuyển từ một ứng dụng **trộn lẫn giao diện,
+Sau tám sprint, dự án AI-English đã chuyển từ một ứng dụng **trộn lẫn giao diện,
 nghiệp vụ và truy vấn SQL** sang một kiến trúc **phân tầng rõ ràng, có kiểm thử tự
 động bảo vệ**.
 
@@ -599,11 +666,14 @@ chức năng, nhưng đội phát triển giờ có thể:
 - Thay cơ sở dữ liệu mà không đụng vào giao diện
 - Đổi tham số qua `.env` mà không cần chạm vào mã nguồn
 - Đọc lại file log khi người dùng báo lỗi, mà không sợ lộ mật khẩu
-- Chạy 366 bài kiểm thử trong 9,88 giây mà không cần cài YOLO hay kết nối database
-- Được cảnh báo tự động nếu ai đó phá vỡ kiến trúc
+- Chạy 392 bài kiểm thử bằng **một lệnh** trong 12,7 giây, không cần cài YOLO hay
+  kết nối database, và không làm thay đổi bất cứ thứ gì trong dự án
+- Được cảnh báo tự động nếu ai đó phá vỡ kiến trúc — kể cả khi họ vô tình làm
+  khởi động chậm đi 10 lần
 
-Và người dùng cuối *có* thấy hai khác biệt rõ rệt:
+Và người dùng cuối *có* thấy ba khác biệt rõ rệt:
 
+- **Cửa sổ hiện ra sau ~1 giây** thay vì ~10 giây (Sprint 8)
 - **Truy vấn dữ liệu nhanh hơn 2,7 lần** (Sprint 4)
 - **Giao diện không còn đứng hình khi đăng nhập** — từ ~630 ms xuống ~1 ms (Sprint 5)
 
@@ -620,6 +690,7 @@ Và người dùng cuối *có* thấy hai khác biệt rõ rệt:
 | `SPRINT_5_REPORT.md` | Chi tiết Sprint 5 — Worker & Thread Refactor (14 mục) |
 | `SPRINT_6_REPORT.md` | Chi tiết Sprint 6 — Config & Dependency Injection (12 mục) |
 | `SPRINT_7_REPORT.md` | Chi tiết Sprint 7 — Logging & Error Handling (11 mục) |
+| `SPRINT_8_REPORT.md` | Chi tiết Sprint 8 — Testing & Performance + **tổng kết 8 sprint** (10 mục) |
 | `SPRINT_PROMPTS.md` | Đề bài chi tiết cho Sprint 4 → 8 |
 | `PROJECT_ARCHITECTURE_DISCOVERY.md` | Khảo sát kiến trúc ban đầu |
 | `AI_ALGORITHM_ANALYSIS.md` | Phân tích thuật toán AI |

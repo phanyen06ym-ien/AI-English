@@ -477,26 +477,43 @@ class NoDanglingThreadTest(unittest.TestCase):
 
         wait_for(lambda: context.webcam_view_model.running)
 
-        before = threading.active_count()
+        # Thu thap chinh cac worker cua context nay.
+        # KHONG dung `threading.active_count()` toan cuc: khi chay ca bo test,
+        # module khac cung co thread nen -> con so do khong noi len dieu gi.
+        view_models = (
+            context.webcam_view_model,
+            context.image_view_model,
+            context.history_view_model,
+            context.statistics_view_model,
+            context.auth_view_model,
+        )
 
         context.shutdown()
         process_events(20)
 
         self.assertFalse(context.webcam_view_model.running)
 
-        # Cho cac thread da dung duoc he dieu hanh thu don.
-        deadline = time.monotonic() + 3.0
-        while (
-            threading.active_count() > before
-            and time.monotonic() < deadline
-        ):
-            process_events(5)
-            time.sleep(0.01)
+        still_running = []
 
-        self.assertLessEqual(
-            threading.active_count(),
-            before,
-            "Shutdown phai dung het thread nen",
+        for view_model in view_models:
+            for attribute in ("_worker", "_detect_worker", "_preview_worker"):
+                worker = getattr(view_model, attribute, None)
+
+                if worker is None:
+                    continue
+
+                try:
+                    if worker.isRunning():
+                        still_running.append(
+                            f"{type(view_model).__name__}.{attribute}"
+                        )
+                except RuntimeError:
+                    continue
+
+        self.assertEqual(
+            still_running,
+            [],
+            "Shutdown phai dung het worker cua context",
         )
 
 

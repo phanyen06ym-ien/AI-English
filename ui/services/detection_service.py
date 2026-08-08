@@ -15,8 +15,12 @@ from typing import Any, Callable
 
 import cv2
 
-from ai.models import ImageAnalysisResult
-from ai.pipeline import AIEngine
+# Sprint 8: KHONG import `ai.*` o cap module.
+# `ai/__init__.py` nap san `ObjectDetector` nen bat ky import nao tu `ai.*`
+# cung keo theo torch + ultralytics + sklearn (~6,6 giay). Chi can kieu de
+# chu thich thi dung TYPE_CHECKING; cho nao dung that su thi import trong ham.
+from typing import TYPE_CHECKING
+
 from config.schema import UIConfig
 from core import messages
 from ui.services.annotation_service import (
@@ -30,6 +34,11 @@ from ui.services.history_service import (
 )
 
 
+if TYPE_CHECKING:  # pragma: no cover
+    from ai.models import ImageAnalysisResult
+    from ai.pipeline import AIEngine
+
+
 ERROR_IMAGE_UNREADABLE = messages.MSG_IMAGE_UNREADABLE
 
 
@@ -39,7 +48,7 @@ class ImageDetectionOutcome:
 
     success: bool
     message: str = ""
-    analysis: ImageAnalysisResult | None = None
+    analysis: "ImageAnalysisResult | None" = None
     annotated_frame: Any = None
     saved_history_count: int = 0
 
@@ -56,7 +65,7 @@ class FrameDetectionOutcome:
 
     success: bool
     message: str = ""
-    analysis: ImageAnalysisResult | None = None
+    analysis: "ImageAnalysisResult | None" = None
     results: list[dict[str, Any]] = field(default_factory=list)
     recordable: list[dict[str, Any]] = field(default_factory=list)
 
@@ -66,7 +75,7 @@ class DetectionService:
 
     def __init__(
         self,
-        ai_engine: AIEngine,
+        ai_engine: "AIEngine",
         history_service: HistoryService | None = None,
         image_reader: Callable[[str], Any] = cv2.imread,
         ui_config: UIConfig | None = None,

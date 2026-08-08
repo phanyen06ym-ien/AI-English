@@ -12,11 +12,20 @@ from PySide6.QtCore import (
     Slot,
 )
 
-from ai.pipeline import AIEngine
+# Sprint 8: KHONG import `ai.*` o cap module.
+# `ai/__init__.py` nap san `ObjectDetector` nen bat ky import nao tu `ai.*`
+# cung keo theo torch + ultralytics + sklearn (~6,6 giay). Chi can kieu de
+# chu thich thi dung TYPE_CHECKING; cho nao dung that su thi import trong ham.
+from typing import TYPE_CHECKING
+
 from config.schema import AIConfig
 from ui.state import UiState
 from ui.ui_logger import log_ui_event
 from ui.viewmodels.base_viewmodel import BaseViewModel
+
+
+if TYPE_CHECKING:  # pragma: no cover
+    from ai.pipeline import AIEngine
 
 
 RELATED_WORDS_COUNT = AIConfig.related_words_count
@@ -78,6 +87,16 @@ class VocabularyModel(QAbstractListModel):
 
         return None
 
+    def set_words(
+        self,
+        words: list[dict],
+    ) -> None:
+        """Thay toan bo danh sach tu vung (Sprint 8: nap tre)."""
+        self.beginResetModel()
+        self._all_words = list(words)
+        self._filtered_words = list(words)
+        self.endResetModel()
+
     @Slot(str)
     def setFilter(
         self,
@@ -116,10 +135,14 @@ class VocabularyViewModel(BaseViewModel):
 
     def __init__(
         self,
-        ai_engine: AIEngine,
+        ai_engine: "AIEngine",
         config: AIConfig | None = None,
+        load_on_init: bool = True,
         parent=None,
     ) -> None:
+        """`load_on_init=False` (Sprint 8) de khong keo sklearn/pandas vao
+        luc khoi dong - danh sach se duoc `WarmupWorker` day vao sau.
+        """
         super().__init__("vocabulary_viewmodel", parent)
 
         self._ai_engine = ai_engine
@@ -129,10 +152,27 @@ class VocabularyViewModel(BaseViewModel):
             else AIConfig()
         )
 
-        vocabulary = self._ai_engine.get_vocabulary_entries()
+        vocabulary = (
+            self._ai_engine.get_vocabulary_entries()
+            if load_on_init
+            else []
+        )
 
         self._model = VocabularyModel(vocabulary)
         self.set_state(UiState.IDLE)
+
+    @Slot(list)
+    def setVocabulary(
+        self,
+        entries: list,
+    ) -> None:
+        """Nhan danh sach tu vung tu `WarmupWorker` (chay tren GUI thread)."""
+        self._model.set_words(entries)
+        self.VocabularyChanged.emit(list(entries))
+
+    @property
+    def word_count(self) -> int:
+        return self._model.rowCount()
 
     @Property(QObject, constant=True)
     def model(self):

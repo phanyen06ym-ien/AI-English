@@ -9,7 +9,7 @@ import cv2
 import pandas as pd
 
 
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
+PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 IMAGE_DIR = PROJECT_ROOT / "dataset" / "test_images"
 VOCABULARY_PATH = PROJECT_ROOT / "dataset" / "vocabulary.csv"
 RESULT_DIR = PROJECT_ROOT / "docs" / "experiment_results"

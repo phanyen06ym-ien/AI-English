@@ -23,7 +23,7 @@ from pathlib import Path
 
 sys.path.insert(
     0,
-    str(Path(__file__).resolve().parent.parent),
+    str(Path(__file__).resolve().parent.parent.parent),
 )
 
 from PySide6.QtCore import QCoreApplication  # noqa: E402
