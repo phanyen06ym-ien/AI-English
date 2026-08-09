@@ -1,13 +1,49 @@
 english,vietnamese,category,level
 person,Người,Human,Easy
+man,Người đàn ông,Human,Easy
+woman,Người phụ nữ,Human,Easy
+boy,Cậu bé,Human,Easy
+girl,Cô bé,Human,Easy
+student,Học sinh,Human,Medium
 backpack,Ba lô,Study,Easy
 book,Sách,Study,Easy
+notebook,Vở ghi,Study,Easy
+pencil,Bút chì,Study,Easy
+ruler,Thước kẻ,Study,Easy
+eraser,Cục tẩy,Study,Easy
+marker,Bút đánh dấu,Study,Medium
+calculator,Máy tính bỏ túi,Study,Medium
 bottle,Chai nước,Daily,Easy
-cell phone,Điện thoại,Technology,Easy
-chair,Ghế,Furniture,Easy
-clock,Đồng hồ,Daily,Easy
 cup,Cốc,Daily,Easy
-dining table,Bàn,Furniture,Medium
+clock,Đồng hồ,Daily,Easy
+spoon,Thìa,Daily,Easy
+fork,Nĩa,Daily,Easy
+bowl,Bát,Daily,Easy
+plate,Đĩa,Daily,Easy
+mug,Cốc có quai,Daily,Easy
+chair,Ghế,Furniture,Easy
+dining table,Bàn ăn,Furniture,Medium
+desk,Bàn làm việc,Furniture,Medium
+sofa,Ghế sofa,Furniture,Medium
+cabinet,Tủ,Furniture,Medium
+shelf,Kệ,Furniture,Medium
+cell phone,Điện thoại,Technology,Easy
 keyboard,Bàn phím,Technology,Medium
 laptop,Máy tính xách tay,Technology,Medium
 mouse,Chuột máy tính,Technology,Medium
+monitor,Màn hình,Technology,Medium
+printer,Máy in,Technology,Medium
+computer,Máy tính,Technology,Medium
+webcam,Camera máy tính,Technology,Medium
+dog,Con chó,Animal,Easy
+cat,Con mèo,Animal,Easy
+bird,Con chim,Animal,Easy
+horse,Con ngựa,Animal,Medium
+apple,Quả táo,Food,Easy
+banana,Quả chuối,Food,Easy
+orange,Quả cam,Food,Easy
+sandwich,Bánh mì kẹp,Food,Medium
+pizza,Bánh pizza,Food,Medium
+rice,Cơm,Food,Easy
+milk,Sữa,Food,Easy
+bread,Bánh mì,Food,Easy

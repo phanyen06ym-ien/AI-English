@@ -10,10 +10,10 @@ Khong ai nho duoc, va de bo sot mot bo test.
 
 Gio chi con:
 
-    python run_tests.py                # chay toan bo bo test tu dong
-    python run_tests.py --coverage     # kem do phu
-    python run_tests.py --unittest     # dung unittest, khong can pytest
-    python run_tests.py --list         # xem co nhung gi
+    python test/run_tests.py                # chay toan bo bo test tu dong
+    python test/run_tests.py --coverage     # kem do phu
+    python test/run_tests.py --unittest     # dung unittest, khong can pytest
+    python test/run_tests.py --list         # xem co nhung gi
 
 Bao dam cua lenh nay:
 
@@ -30,7 +30,7 @@ import sys
 from pathlib import Path
 
 
-ROOT = Path(__file__).resolve().parent
+ROOT = Path(__file__).resolve().parent.parent
 
 #: Nguong do phu toi thieu cho cac tang do Sprint 3-7 viet ra.
 COVERAGE_THRESHOLD = 80
@@ -101,7 +101,7 @@ def list_tests() -> int:
         if path.name != "__init__.py"
     )
 
-    print("BO TEST TU DONG (chay bang `python run_tests.py`)")
+    print("BO TEST TU DONG (chay bang `python test/run_tests.py`)")
     print("  Khong can YOLO / database / webcam, khong de lai dau vet.\n")
     for name in automated:
         print(f"  test/{name}")

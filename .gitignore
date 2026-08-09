@@ -1,4 +1,4 @@
-# =========================
+﻿# =========================
 # Python
 # =========================
 __pycache__/
@@ -76,20 +76,33 @@ htmlcov/
 # Jupyter
 # =========================
 .ipynb_checkpoints/
+*.ipynb
 
 # =========================
 # Logs
 # =========================
 *.log
 logs/
+*.out
+*.err
 
 # =========================
 # Temporary files
 # =========================
 temp/
 tmp/
+tmp*/
+temp*/
 *.tmp
 *.temp
+*.bak
+*.old
+*.orig
+*.copy
+* copy*
+*_copy*
+*backup*
+*Backup*
 tempCodeRunnerFile.py
 
 # =========================
@@ -102,6 +115,7 @@ tempCodeRunnerFile.py
 # =========================
 # Generated media
 # =========================
+assets/audio/
 *.mp3
 *.wav
 annotated_*.jpg
@@ -110,6 +124,16 @@ annotated_*.png
 temp_image.*
 temp_frame.*
 webcam_output.*
+debug_*.png
+debug_*.jpg
+debug_*.jpeg
+demo_*.png
+demo_*.jpg
+demo_*.jpeg
+screenshot_*.png
+screenshot_*.jpg
+Screenshot_*.png
+Screenshot_*.jpg
 
 # =========================
 # QML / Qt
@@ -142,10 +166,11 @@ profile_results/
 # =========================
 # Machine Learning Models
 # =========================
-# Nếu model >100MB hãy bỏ comment 3 dòng dưới
- models/*.pt
+# Keep the current project models tracked. Store larger future exports
+# outside git or publish them through Git LFS/releases.
+# models/*.pt
 models/*.onnx
- models/*.engine
+# models/*.engine
 
 # =========================
 # System
@@ -155,3 +180,124 @@ desktop.ini
 .DS_Store
 # Sprint 8: bao cao do phu HTML
 docs/coverage/
+
+# =========================
+# Office / archive attachments
+# =========================
+*.docx
+*.doc
+*.pptx
+*.ppt
+*.pdf
+*.zip
+*.rar
+*.7z
+*.tar
+*.tar.gz
+*.gz
+
+# =========================
+# Generated reports / experiment artifacts
+# =========================
+01_Report_Draft/
+02_Report_Assets/
+03_Experiment/
+04_Benchmark/
+05_Screenshots/
+06_Dataset/
+07_Database/
+08_Model/
+09_Documents/
+10_Archive/
+reports/
+report_assets/
+REPORT_PACKAGE/
+docs/archive/report_package/
+docs/archive/experiment_results/
+docs/archive/
+docs/report/
+docs/reports/
+docs/benchmark/
+docs/screenshots/
+docs/charts/
+docs/generated/
+docs/*.md
+docs/*.markdown
+docs/*.txt
+*.xlsx
+*.xls
+*.csv
+!dataset/**/*.csv
+!data/**/*.csv
+!config/**/*.csv
+
+# Root-level generated markdown reports. Keep README.md and LICENSE tracked.
+/*.md
+!/README.md
+!/LICENSE.md
+
+# Experiment and chart outputs by common AI report names.
+# Scoped to generated documentation/report locations to avoid hiding source,
+# dataset, or model files such as models/knn.pkl and models/kmeans.pkl.
+/*benchmark*
+/*Benchmark*
+/*metrics*
+/*Metrics*
+/*evaluation*
+/*Evaluation*
+/*result*
+/*Result*
+/*summary*
+/*Summary*
+/*confusion*
+/*Confusion*
+/*roc*
+/*ROC*
+/*loss*
+/*Loss*
+/*accuracy*
+/*Accuracy*
+/*precision*
+/*Precision*
+/*recall*
+/*Recall*
+/*epoch*
+/*Epoch*
+/*elbow*
+/*Elbow*
+/*silhouette*
+/*Silhouette*
+/*cluster_visualization*
+docs/**/*benchmark*
+docs/**/*Benchmark*
+docs/**/*metrics*
+docs/**/*Metrics*
+docs/**/*evaluation*
+docs/**/*Evaluation*
+docs/**/*result*
+docs/**/*Result*
+docs/**/*summary*
+docs/**/*Summary*
+docs/**/*confusion*
+docs/**/*Confusion*
+docs/**/*roc*
+docs/**/*ROC*
+docs/**/*loss*
+docs/**/*Loss*
+docs/**/*accuracy*
+docs/**/*Accuracy*
+docs/**/*precision*
+docs/**/*Precision*
+docs/**/*recall*
+docs/**/*Recall*
+docs/**/*epoch*
+docs/**/*Epoch*
+docs/**/*elbow*
+docs/**/*Elbow*
+docs/**/*silhouette*
+docs/**/*Silhouette*
+docs/**/*cluster_visualization*
+docs/**/*KNN*
+docs/**/*knn*
+docs/**/*KMeans*
+docs/**/*kmeans*

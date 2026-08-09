@@ -614,7 +614,7 @@ class TestSuiteDisciplineTest(unittest.TestCase):
 
     def test_single_entry_point_exists(self):
         self.assertTrue(
-            (ROOT / "run_tests.py").exists(),
+            (ROOT / "test" / "run_tests.py").exists(),
             "Phai co mot lenh chay test duy nhat",
         )
 
