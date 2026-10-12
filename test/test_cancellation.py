@@ -228,8 +228,13 @@ class ManagedWorkerLifecycleTest(unittest.TestCase):
 
         self.assertTrue(
             wait_for(
-                lambda: worker.state is WorkerState.FINISHED
-            )
+                lambda: (
+                        worker.state is WorkerState.FINISHED
+                        and "finished" in states
+                ),
+                timeout=3.0,
+            ),
+            "Worker phải kết thúc và phát stateChanged('finished')",
         )
         self.assertEqual(worker.completed_steps, 3)
         self.assertIn("running", states)
@@ -267,9 +272,15 @@ class ManagedWorkerLifecycleTest(unittest.TestCase):
 
         self.assertTrue(
             wait_for(
-                lambda: worker.state is WorkerState.CANCELLED
-            )
+                lambda: (
+                        worker.state is WorkerState.CANCELLED
+                        and len(cancelled_signals) >= 1
+                ),
+                timeout=3.0,
+            ),
+            "Worker phải chuyển sang CANCELLED và phát cancelled signal",
         )
+
         self.assertEqual(cancelled_signals, [1])
         self.assertLess(
             worker.completed_steps,
