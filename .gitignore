@@ -233,6 +233,24 @@ docs/*.txt
 
 # Root-level generated markdown reports. Keep README.md and LICENSE tracked.
 /*.md
+# EnglishGo - Software Engineering course documentation
+!PRODUCT_DIRECTION.md
+!AGENT_GUIDE.md
+!AI_USAGE_POLICY.md
+!PRODUCT_ANALYSIS.md
+!AI_FEATURE_PROPOSAL.md
+!CODEBASE_OVERVIEW.md
+!REQUIREMENTS.md
+!PROMPTS.md
+!AI_FEATURE_DESIGN.md
+!AI_FEATURE_TEST.md
+!TEST_PLAN.md
+!SECURITY.md
+!AI_SAFETY_REVIEW.md
+!DEPLOYMENT.md
+!TECHNICAL_DEBT.md
+!FINAL_REPORT.md
+!AI_ENGINEERING_REFLECTION.md
 !/README.md
 !/LICENSE.md
 
